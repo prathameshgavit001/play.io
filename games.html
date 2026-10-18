@@ -16,12 +16,14 @@
     .header-area h1 { font-size: 2.2rem; margin-bottom: 8px; }
     .header-area p { color: #8b949e; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
-    .game-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; }
+    .game-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, border-color 0.2s; }
+    .game-card:hover { transform: translateY(-3px); border-color: #58a6ff; }
     .game-card h3 { color: #58a6ff; font-size: 1.3rem; margin-bottom: 8px; }
-    .game-card p { color: #8b949e; margin-bottom: 16px; font-size: 0.95rem; }
+    .game-card p { color: #8b949e; margin-bottom: 20px; font-size: 0.95rem; }
     .badge { display: inline-block; align-self: flex-start; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-bottom: 12px; }
     .badge-arcade { background: #388bfd26; color: #58a6ff; }
     .badge-puzzle { background: #7ee78726; color: #56d364; }
+    .badge-reflex { background: #f0883e26; color: #f0883e; }
     .btn-play { display: block; text-align: center; padding: 10px; background: #238636; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; }
     .btn-play:hover { background: #2ea043; }
     footer { text-align: center; padding: 30px 20px; border-top: 1px solid #21262d; color: #8b949e; font-size: 0.9rem; }
@@ -42,35 +44,58 @@
   <main class="container">
     <div class="header-area">
       <h1>Games Catalog</h1>
-      <p>Select any game to launch it in your browser.</p>
+      <p>Select any game to launch and play directly in your browser.</p>
     </div>
 
     <div class="grid">
+      <!-- Game 1 -->
       <div class="game-card">
         <div>
-          <span class="badge badge-arcade">Arcade</span>
-          <h3>Snake Game</h3>
-          <p>Classic canvas snake game. Control the snake with arrow keys or swipe gestures.</p>
+          <span class="badge badge-arcade">Classic Arcade</span>
+          <h3>Snake</h3>
+          <p>Guide the snake, eat the food, and set new high scores. Compatible with mobile D-pad and arrow keys.</p>
         </div>
-        <a href="#" class="btn-play">Play Now</a>
+        <a href="snake.html" class="btn-play">Play Snake</a>
       </div>
 
+      <!-- Game 2 -->
       <div class="game-card">
         <div>
           <span class="badge badge-puzzle">Strategy</span>
           <h3>Tic-Tac-Toe</h3>
-          <p>Quick two-player board challenge with interactive win animations.</p>
+          <p>Classic 2-player pass-and-play duel. Compete against a friend with an automated win and draw tracker.</p>
         </div>
-        <a href="#" class="btn-play">Play Now</a>
+        <a href="tictactoe.html" class="btn-play">Play Tic-Tac-Toe</a>
       </div>
 
+      <!-- Game 3 -->
       <div class="game-card">
         <div>
           <span class="badge badge-puzzle">Memory</span>
-          <h3>Color Memory</h3>
-          <p>Repeat the sequence of illuminated colored tiles as long as you can survive.</p>
+          <h3>Memory Match</h3>
+          <p>Test your short-term recall. Flip cards to reveal emoji pairs and clear the grid in minimum moves.</p>
         </div>
-        <a href="#" class="btn-play">Play Now</a>
+        <a href="memory.html" class="btn-play">Play Memory Match</a>
+      </div>
+
+      <!-- Game 4 -->
+      <div class="game-card">
+        <div>
+          <span class="badge badge-reflex">Speed & Reflex</span>
+          <h3>Reaction Time Test</h3>
+          <p>Wait for the red screen to turn green and tap immediately to test your cognitive reflex in milliseconds.</p>
+        </div>
+        <a href="reaction.html" class="btn-play">Play Reaction Test</a>
+      </div>
+
+      <!-- Game 5 -->
+      <div class="game-card">
+        <div>
+          <span class="badge badge-reflex">Tapper</span>
+          <h3>Clicker Speed Test</h3>
+          <p>Race the 10-second countdown. Tap or click as fast as possible to measure your Clicks Per Second (CPS).</p>
+        </div>
+        <a href="clicker.html" class="btn-play">Play Clicker Test</a>
       </div>
     </div>
   </main>
