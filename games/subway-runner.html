@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- PLAYIO_GAME_METADATA_START
+    {
+      "id": "subway-runner",
+      "title": "Subway Runner: Neon Dash",
+      "category": "Action / Endless Runner",
+      "description": "3D infinite runner with temporary room codes, PIN protection, and live multiplayer scoreboards.",
+      "thumbnail": "assets/thumbnails/subway-runner.png",
+      "orientation": "landscape",
+      "multiplayer": true
+    }
+    PLAYIO_GAME_METADATA_END -->
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subway Runner: Neon Dash | Playio</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0f111a; color: #fff; }
+        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        /* UI Layer */
+        .hud {
+            position: absolute; top: 20px; left: 20px; z-index: 10;
+            display: flex; gap: 20px; font-size: 20px; font-weight: bold;
+            text-shadow: 0 0 10px rgba(0,255,200,0.8);
+        }
+        .room-tag {
+            position: absolute; top: 20px; right: 20px; z-index: 10;
+            background: rgba(16, 20, 35, 0.85); padding: 8px 16px; border-radius: 8px;
+            border: 1px solid #38ef7d; font-size: 14px;
+        }
+
+        /* Modals & Overlays */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 12, 22, 0.9); z-index: 20;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .modal {
+            background: #181d30; padding: 30px; border-radius: 12px;
+            width: 420px; border: 1px solid #2d3758; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex; flex-direction: column; gap: 15px; text-align: center;
+        }
+        .modal h2 { color: #00f2fe; margin-bottom: 5px; }
+        .modal input {
+            background: #0d101d; border: 1px solid #33416b; color: #fff;
+            padding: 10px 14px; border-radius: 6px; font-size: 14px; width: 100%; outline: none;
+        }
+        .modal input:focus { border-color: #00f2fe; }
+        .btn-group { display: flex; gap: 10px; }
+        button {
+            flex: 1; padding: 12px; border: none; border-radius: 6px;
+            background: linear-gradient(135deg, #00f2fe, #4facfe); color: #050b14;
+            font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s ease;
+        }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button.secondary {
+            background: #252e4d; color: #e2e8f0;
+        }
+        button.secondary:hover { background: #323d66; }
+
+        /* Scoreboard Panel */
+        #scoreboard-panel {
+            position: absolute; bottom: 20px; right: 20px; z-index: 10;
+            background: rgba(16, 20, 35, 0.85); border: 1px solid #33416b;
+            border-radius: 8px; padding: 12px 18px; width: 260px; max-height: 250px;
+            overflow-y: auto;
+        }
+        #scoreboard-panel h3 { font-size: 14px; color: #00f2fe; margin-bottom: 8px; text-transform: uppercase; }
+        .score-entry {
+            display: flex; justify-content: space-between; font-size: 13px;
+            padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .score-entry.self { color: #38ef7d; font-weight: bold; }
+    </style>
+    <!-- Three.js CDN for 3D Subway Canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- PeerJS for WebRTC Serverless Rooms -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="hud">
+        <div>SCORE: <span id="ui-score">0</span></div>
+        <div>COINS: <span id="ui-coins">0</span></div>
+    </div>
+
+    <div class="room-tag" id="ui-room-tag" style="display: none;">
+        Room: <span id="ui-room-name">----</span> | PIN: <span id="ui-pin-name">----</span>
+    </div>
+
+    <!-- Live Room Scoreboard -->
+    <div id="scoreboard-panel" style="display: none;">
+        <h3>Room Leaderboard</h3>
+        <div id="leaderboard-list"></div>
+    </div>
+
+    <!-- Room Entry / Lobby Overlay -->
+    <div class="overlay" id="lobby-overlay">
+        <div class="modal">
+            <h2>Subway Runner</h2>
+            <p style="font-size: 13px; color: #94a3b8;">Enter nickname and join or create a private room.</p>
+            <input type="text" id="player-nickname" placeholder="Nickname (e.g. SpeedDemon)" maxlength="12" value="Runner1">
+            
+            <div style="border-top: 1px solid #252e4d; margin: 5px 0;"></div>
+            
+            <div class="btn-group">
+                <button onclick="showCreateRoom()">Create Room</button>
+                <button class="secondary" onclick="showJoinRoom()">Join Room</button>
+            </div>
+
+            <!-- Create Fields -->
+            <div id="create-fields" style="display:none; flex-direction:column; gap:10px;">
+                <input type="text" id="create-pin" placeholder="Set Room PIN (4 digits)" maxlength="4">
+                <button onclick="initHostRoom()">Launch & Host</button>
+            </div>
+
+            <!-- Join Fields -->
+            <div id="join-fields" style="display:none; flex-direction:column; gap:10px;">
+                <input type="text" id="join-room-id" placeholder="Enter 6-digit Room Code" maxlength="6">
+                <input type="text" id="join-pin" placeholder="Enter Room PIN" maxlength="4">
+                <button onclick="initJoinRoom()">Connect & Play</button>
+            </div>
+
+            <button class="secondary" onclick="startSolo()" style="margin-top: 5px;">Play Solo</button>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div class="overlay" id="death-overlay" style="display: none;">
+        <div class="modal">
+            <h2 style="color: #ff416c;">CRASHED!</h2>
+            <p>Your Final Score: <span id="final-score" style="font-size: 20px; font-weight: bold; color: #fff;">0</span></p>
+            <button onclick="restartGame()">Run Again</button>
+        </div>
+    </div>
+
+    <script>
+        /* -------------------------------------------------------------
+           1. GAME ENGINE (Three.js 3-Lane Endless Runner)
+        ------------------------------------------------------------- */
+        let scene, camera, renderer, player;
+        let lanes = [-3, 0, 3];
+        let currentLane = 1; // 0: Left, 1: Middle, 2: Right
+        let isJumping = false, jumpVelocity = 0;
+        let score = 0, coins = 0, speed = 0.4;
+        let obstacles = [], tracks = [];
+        let gameRunning = false;
+
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0f111a, 0.015);
+
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 4, 8);
+            camera.rotation.x = -0.3;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x0f111a);
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            const dirLight = new THREE.DirectionalLight(0x00f2fe, 0.8);
+            dirLight.position.set(5, 10, 7);
+            scene.add(ambient, dirLight);
+
+            // Player Mesh
+            const geom = new THREE.BoxGeometry(1, 1.8, 1);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x38ef7d, roughness: 0.3 });
+            player = new THREE.Mesh(geom, mat);
+            player.position.set(lanes[currentLane], 0.9, 0);
+            scene.add(player);
+
+            // Tracks
+            for(let i = 0; i < 15; i++) {
+                createTrackSlice(-i * 10);
+            }
+
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', handleKeyInput);
+        }
+
+        function createTrackSlice(zPos) {
+            const geom = new THREE.BoxGeometry(10, 0.2, 10);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x181d30 });
+            const track = new THREE.Mesh(geom, mat);
+            track.position.set(0, -0.1, zPos);
+            scene.add(track);
+            tracks.push(track);
+        }
+
+        function spawnObstacle(zPos) {
+            const laneIdx = Math.floor(Math.random() * 3);
+            const geom = new THREE.BoxGeometry(1.6, 1.4, 1.2);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff416c });
+            const obs = new THREE.Mesh(geom, mat);
+            obs.position.set(lanes[laneIdx], 0.7, zPos);
+            scene.add(obs);
+            obstacles.push({ mesh: obs, lane: laneIdx });
+        }
+
+        function handleKeyInput(e) {
+            if (!gameRunning) return;
+            if (e.key === 'ArrowLeft' || e.key === 'a') {
+                if (currentLane > 0) currentLane--;
+            } else if (e.key === 'ArrowRight' || e.key === 'd') {
+                if (currentLane < 2) currentLane++;
+            } else if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && !isJumping) {
+                isJumping = true;
+                jumpVelocity = 0.32;
+            }
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+            requestAnimationFrame(gameLoop);
+
+            // Player lateral interpolation
+            player.position.x += (lanes[currentLane] - player.position.x) * 0.25;
+
+            // Jump Physics
+            if (isJumping) {
+                player.position.y += jumpVelocity;
+                jumpVelocity -= 0.018;
+                if (player.position.y <= 0.9) {
+                    player.position.y = 0.9;
+                    isJumping = false;
+                }
+            }
+
+            // Move tracks
+            for (let t of tracks) {
+                t.position.z += speed;
+                if (t.position.z > 10) {
+                    t.position.z -= 150;
+                }
+            }
+
+            // Manage Obstacles
+            if (Math.random() < 0.035 && (obstacles.length === 0 || obstacles[obstacles.length - 1].mesh.position.z > -100)) {
+                spawnObstacle(-120);
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.mesh.position.z += speed;
+
+                // Collision detection
+                if (Math.abs(obs.mesh.position.z - player.position.z) < 1.0 && obs.lane === currentLane) {
+                    if (player.position.y < 1.4) {
+                        endGame();
+                        return;
+                    }
+                }
+
+                if (obs.mesh.position.z > 10) {
+                    scene.remove(obs.mesh);
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            score += 1;
+            speed += 0.00005; // progressive speed-up
+            document.getElementById('ui-score').innerText = Math.floor(score / 5);
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function startGame() {
+            document.getElementById('lobby-overlay').style.display = 'none';
+            document.getElementById('death-overlay').style.display = 'none';
+            score = 0;
+            speed = 0.4;
+            currentLane = 1;
+            player.position.set(lanes[1], 0.9, 0);
+            
+            // Clear current obstacles
+            for (let obs of obstacles) scene.remove(obs.mesh);
+            obstacles = [];
+            
+            gameRunning = true;
+            gameLoop();
+        }
+
+        function endGame() {
+            gameRunning = false;
+            const final = Math.floor(score / 5);
+            document.getElementById('final-score').innerText = final;
+            document.getElementById('death-overlay').style.display = 'flex';
+            
+            // Broadcast final score to room peers
+            syncScore(final);
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        /* -------------------------------------------------------------
+           2. MULTIPLAYER, ROOMS & SCOREBOARDS (Serverless PeerJS)
+        ------------------------------------------------------------- */
+        let peer = null;
+        let connections = [];
+        let isHost = false;
+        let roomCode = "";
+        let roomPIN = "";
+        let nickname = "Runner";
+        let scoreTable = {}; // { peerId: { name, score } }
+
+        function showCreateRoom() {
+            document.getElementById('create-fields').style.display = 'flex';
+            document.getElementById('join-fields').style.display = 'none';
+        }
+
+        function showJoinRoom() {
+            document.getElementById('join-fields').style.display = 'flex';
+            document.getElementById('create-fields').style.display = 'none';
+        }
+
+        function startSolo() {
+            startGame();
+        }
+
+        function generateCode(len) {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        function setupRoomUI(code, pin) {
+            document.getElementById('ui-room-tag').style.display = 'block';
+            document.getElementById('scoreboard-panel').style.display = 'block';
+            document.getElementById('ui-room-name').innerText = code;
+            document.getElementById('ui-pin-name').innerText = pin;
+        }
+
+        // Host a Room
+        function initHostRoom() {
+            nickname = document.getElementById('player-nickname').value.trim() || "HostRunner";
+            roomPIN = document.getElementById('create-pin').value.trim();
+            roomCode = generateCode(6);
+
+            // Peer prefix ensures safe namespace isolation on public PeerJS servers
+            peer = new Peer("playio-subway-" + roomCode);
+
+            peer.on('open', (id) => {
+                isHost = true;
+                setupRoomUI(roomCode, roomPIN || "None");
+                scoreTable[peer.id] = { name: nickname, score: 0 };
+                renderScoreboard();
+                startGame();
+            });
+
+            peer.on('connection', (conn) => {
+                conn.on('data', (data) => {
+                    handleHostNetworkMessage(conn, data);
+                });
+                conn.on('close', () => {
+                    delete scoreTable[conn.peer];
+                    broadcastScoreboard();
+                    renderScoreboard();
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert("Room creation failed: " + err.type);
+            });
+        }
+
+        // Join a Room
+        function initJoinRoom() {
+            nickname = document.getElementById('player-nickname').value.trim() || "GuestRunner";
+            const targetCode = document.getElementById('join-room-id').value.trim();
+            const inputPIN = document.getElementById('join-pin').value.trim();
+
+            peer = new Peer(); // auto ID for clients
+
+            peer.on('open', () => {
+                const conn = peer.connect("playio-subway-" + targetCode);
+                conn.on('open', () => {
+                    // Send auth handshake
+                    conn.send({ type: 'HANDSHAKE', nickname: nickname, pin: inputPIN });
+                });
+
+                conn.on('data', (data) => {
+                    if (data.type === 'AUTH_FAILED') {
+                        alert(data.reason);
+                        peer.destroy();
+                    } else if (data.type === 'AUTH_SUCCESS') {
+                        setupRoomUI(targetCode, inputPIN || "None");
+                        connections.push(conn);
+                        startGame();
+                    } else if (data.type === 'SCOREBOARD_UPDATE') {
+                        scoreTable = data.table;
+                        renderScoreboard();
+                    }
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert("Could not connect to room: " + err.type);
+            });
+        }
+
+        function handleHostNetworkMessage(conn, data) {
+            if (data.type === 'HANDSHAKE') {
+                if (roomPIN && data.pin !== roomPIN) {
+                    conn.send({ type: 'AUTH_FAILED', reason: 'Invalid Room PIN' });
+                    conn.close();
+                    return;
+                }
+                connections.push(conn);
+                scoreTable[conn.peer] = { name: data.nickname, score: 0 };
+                conn.send({ type: 'AUTH_SUCCESS' });
+                broadcastScoreboard();
+                renderScoreboard();
+            } else if (data.type === 'SCORE_UPDATE') {
+                if (scoreTable[conn.peer]) {
+                    scoreTable[conn.peer].score = Math.max(scoreTable[conn.peer].score, data.score);
+                    broadcastScoreboard();
+                    renderScoreboard();
+                }
+            }
+        }
+
+        function broadcastScoreboard() {
+            if (!isHost) return;
+            const payload = { type: 'SCOREBOARD_UPDATE', table: scoreTable };
+            for (let c of connections) {
+                if (c.open) c.send(payload);
+            }
+        }
+
+        function syncScore(currentScore) {
+            if (!peer) return;
+            if (isHost) {
+                scoreTable[peer.id].score = Math.max(scoreTable[peer.id].score, currentScore);
+                broadcastScoreboard();
+                renderScoreboard();
+            } else if (connections.length > 0 && connections[0].open) {
+                connections[0].send({ type: 'SCORE_UPDATE', score: currentScore });
+            }
+        }
+
+        function renderScoreboard() {
+            const listEl = document.getElementById('leaderboard-list');
+            listEl.innerHTML = "";
+            
+            // Sort by descending score
+            const sorted = Object.entries(scoreTable).sort((a, b) => b[1].score - a[1].score);
+
+            sorted.forEach(([id, entry], index) => {
+                const row = document.createElement('div');
+                row.className = 'score-entry' + (peer && id === peer.id ? ' self' : '');
+                row.innerHTML = `<span>#${index + 1} ${entry.name}</span><span>${entry.score}</span>`;
+                listEl.appendChild(row);
+            });
+        }
+
+        // Initialize 3D Engine on load
+        window.onload = initScene;
+    </script>
+</body>
+</html>
