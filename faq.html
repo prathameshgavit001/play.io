@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Q&A - Play.io</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0d1117; color: #e6edf3; line-height: 1.6; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #161b22; border-bottom: 1px solid #30363d; }
+    .brand { font-size: 1.4rem; font-weight: 800; color: #58a6ff; text-decoration: none; }
+    .nav-links a { color: #8b949e; text-decoration: none; margin-left: 20px; font-weight: 500; }
+    .nav-links a.active, .nav-links a:hover { color: #58a6ff; }
+    .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; min-height: 80vh; }
+    h1 { font-size: 2.2rem; margin-bottom: 8px; }
+    .intro { color: #8b949e; margin-bottom: 30px; }
+    details { background: #161b22; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 16px; padding: 16px; cursor: pointer; }
+    details[open] { border-color: #58a6ff; }
+    summary { font-weight: 600; color: #e6edf3; outline: none; }
+    details p { color: #8b949e; margin-top: 12px; font-size: 0.95rem; }
+    footer { text-align: center; padding: 30px 20px; border-top: 1px solid #21262d; color: #8b949e; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="brand">Play.io</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="games.html">Games</a>
+      <a href="about.html">About</a>
+      <a href="faq.html" class="active">Q&A</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <h1>Frequently Asked Questions</h1>
+    <p class="intro">Find answers regarding gameplay, browser compatibility, and site features.</p>
+
+    <details>
+      <summary>Are these games free to play?</summary>
+      <p>Yes. All titles on Play.io are completely free with zero microtransactions or subscription fees.</p>
+    </details>
+
+    <details>
+      <summary>Do I need to install or download anything?</summary>
+      <p>No downloads required. Every game runs natively inside your browser using standard HTML5 and JavaScript.</p>
+    </details>
+
+    <details>
+      <summary>Can I play on my mobile phone?</summary>
+      <p>Yes, all layouts and games are built responsively to accommodate mobile screens and desktop browsers alike.</p>
+    </details>
+
+    <details>
+      <summary>Why isn't there a user account or login system?</summary>
+      <p>Play.io is intentionally kept simple and barrier-free so players can start a session instantly without sharing personal credentials.</p>
+    </details>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Play.io — Hosted on GitHub Pages</p>
+  </footer>
+</body>
+</html>
