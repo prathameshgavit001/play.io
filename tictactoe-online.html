@@ -14,15 +14,20 @@
     .lobby-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; width: 100%; max-width: 360px; text-align: center; margin-bottom: 20px; }
     .lobby-box h2 { font-size: 1.3rem; margin-bottom: 12px; color: #58a6ff; }
     .input-group { display: flex; gap: 8px; margin-top: 12px; }
-    input { flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: #fff; outline: none; }
-    .btn { padding: 8px 16px; background: #238636; border: none; border-radius: 6px; color: #fff; font-weight: 600; cursor: pointer; }
+    input { flex: 1; padding: 10px 12px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: #fff; outline: none; font-size: 0.95rem; }
+    .btn { padding: 10px 16px; background: #238636; border: none; border-radius: 6px; color: #fff; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 0.95rem; }
     .btn:hover { background: #2ea043; }
-    .room-id { background: #21262d; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 1.1rem; color: #7ee787; margin: 10px 0; user-select: all; }
-    .status { font-size: 1.1rem; margin-bottom: 16px; font-weight: bold; color: #58a6ff; text-align: center; }
+    .btn-secondary { background: #1f6feb; }
+    .btn-secondary:hover { background: #388bfd; }
+    .room-id { background: #21262d; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 1.2rem; color: #7ee787; margin: 12px 0; letter-spacing: 1px; }
+    .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-group button { flex: 1; }
+    .status { font-size: 1.15rem; margin-bottom: 16px; font-weight: bold; color: #58a6ff; text-align: center; }
     .board { display: none; grid-template-columns: repeat(3, 90px); grid-template-rows: repeat(3, 90px); gap: 8px; }
     .cell { background: #161b22; border: 2px solid #30363d; border-radius: 8px; font-size: 2.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
     .cell.x { color: #58a6ff; }
     .cell.o { color: #f85149; }
+    .notification { display: none; margin-top: 10px; font-size: 0.85rem; color: #7ee787; }
   </style>
 </head>
 <body>
@@ -32,16 +37,24 @@
 
   <div class="lobby-box" id="lobby">
     <h2>Online Multiplayer</h2>
-    <p style="color: #8b949e; font-size: 0.9rem;">Host a game and share your code, or join a friend's room.</p>
+    <p style="color: #8b949e; font-size: 0.9rem;">Host a game and send an invite, or join with a room code.</p>
     
     <button class="btn" style="width: 100%; margin-top: 14px;" onclick="hostGame()">Host New Game</button>
-    <div id="hostInfo" style="display: none; margin-top: 14px;">
-      <p style="color: #8b949e; font-size: 0.85rem;">Share this Room Code with Player 2:</p>
+    
+    <div id="hostInfo" style="display: none; margin-top: 16px;">
+      <p style="color: #8b949e; font-size: 0.85rem;">Room Code:</p>
       <div class="room-id" id="roomCodeDisplay">Generating...</div>
-      <p style="color: #8b949e; font-size: 0.8rem;">Waiting for Player 2 to connect...</p>
+      
+      <div class="btn-group">
+        <button class="btn btn-secondary" id="shareBtn" onclick="shareInviteLink()">📤 Share Invite</button>
+        <button class="btn" onclick="copyInviteLink()">📋 Copy Link</button>
+      </div>
+      <div class="notification" id="copyNotice">Link copied to clipboard!</div>
+      
+      <p style="color: #8b949e; font-size: 0.8rem; margin-top: 12px;">Waiting for Player 2 to connect...</p>
     </div>
 
-    <div style="margin: 18px 0; border-top: 1px solid #30363d;"></div>
+    <div style="margin: 20px 0; border-top: 1px solid #30363d;"></div>
 
     <div class="input-group">
       <input type="text" id="joinInput" placeholder="Enter Room Code" />
@@ -69,6 +82,7 @@
     let currentTurn = "X";
     let boardState = ["", "", "", "", "", "", "", "", ""];
     let gameOver = false;
+    let createdRoomId = "";
 
     const winCombos = [
       [0,1,2], [3,4,5], [6,7,8],
@@ -76,12 +90,27 @@
       [0,4,8], [2,4,6]
     ];
 
+    // Check URL parameters for direct room join links (e.g., ?room=PLAY-1234)
+    window.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get("room");
+      if (roomParam) {
+        document.getElementById("joinInput").value = roomParam;
+        joinGame(roomParam);
+      }
+    });
+
+    function getInviteUrl() {
+      const baseUrl = window.location.origin + window.location.pathname;
+      return `${baseUrl}?room=${createdRoomId}`;
+    }
+
     function hostGame() {
-      // Generate random 5-character room code
       const shortCode = "PLAY-" + Math.floor(1000 + Math.random() * 9000);
       peer = new Peer(shortCode);
 
       peer.on('open', (id) => {
+        createdRoomId = id;
         document.getElementById("hostInfo").style.display = "block";
         document.getElementById("roomCodeDisplay").innerText = id;
       });
@@ -91,10 +120,43 @@
         mySymbol = "X";
         setupConnection();
       });
+
+      peer.on('error', (err) => {
+        console.error(err);
+        alert("Connection error occurred. Please try hosting again.");
+      });
     }
 
-    function joinGame() {
-      const code = document.getElementById("joinInput").value.trim();
+    async function shareInviteLink() {
+      const inviteUrl = getInviteUrl();
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "Play Tic-Tac-Toe Online",
+            text: `Join my live Tic-Tac-Toe match! Room: ${createdRoomId}`,
+            url: inviteUrl
+          });
+        } catch (e) {
+          // Fallback if sharing is dismissed
+        }
+      } else {
+        copyInviteLink();
+      }
+    }
+
+    function copyInviteLink() {
+      const inviteUrl = getInviteUrl();
+      navigator.clipboard.writeText(inviteUrl).then(() => {
+        const notice = document.getElementById("copyNotice");
+        notice.style.display = "block";
+        setTimeout(() => { notice.style.display = "none"; }, 3000);
+      }).catch(() => {
+        prompt("Copy this invite link:", inviteUrl);
+      });
+    }
+
+    function joinGame(overrideCode) {
+      const code = (overrideCode || document.getElementById("joinInput").value).trim();
       if (!code) return alert("Please enter a room code!");
       
       peer = new Peer();
@@ -102,6 +164,11 @@
         conn = peer.connect(code);
         mySymbol = "O";
         setupConnection();
+      });
+
+      peer.on('error', (err) => {
+        console.error(err);
+        alert("Could not connect to that room code. Make sure the host is online.");
       });
     }
 
