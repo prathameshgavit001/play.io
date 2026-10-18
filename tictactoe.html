@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tic-Tac-Toe - Play.io</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+    .top-bar { width: 100%; max-width: 340px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .top-bar a { color: #58a6ff; text-decoration: none; font-weight: 600; }
+    .status { font-size: 1.2rem; margin-bottom: 16px; color: #58a6ff; font-weight: bold; }
+    .board { display: grid; grid-template-columns: repeat(3, 100px); grid-template-rows: repeat(3, 100px); gap: 8px; }
+    .cell { background: #161b22; border: 2px solid #30363d; border-radius: 8px; font-size: 2.4rem; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+    .cell.x { color: #58a6ff; }
+    .cell.o { color: #f85149; }
+    .btn { margin-top: 24px; padding: 10px 24px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: #2ea043; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="games.html">&larr; Back to Games</a>
+  </div>
+
+  <div class="status" id="status">Player X's Turn</div>
+  <div class="board" id="board">
+    <div class="cell" onclick="makeMove(0)"></div>
+    <div class="cell" onclick="makeMove(1)"></div>
+    <div class="cell" onclick="makeMove(2)"></div>
+    <div class="cell" onclick="makeMove(3)"></div>
+    <div class="cell" onclick="makeMove(4)"></div>
+    <div class="cell" onclick="makeMove(5)"></div>
+    <div class="cell" onclick="makeMove(6)"></div>
+    <div class="cell" onclick="makeMove(7)"></div>
+    <div class="cell" onclick="makeMove(8)"></div>
+  </div>
+
+  <button class="btn" onclick="restart()">Restart Game</button>
+
+  <script>
+    let board = ["", "", "", "", "", "", "", "", ""];
+    let currentPlayer = "X";
+    let active = true;
+
+    const winPatterns = [
+      [0,1,2], [3,4,5], [6,7,8],
+      [0,3,6], [1,4,7], [2,5,8],
+      [0,4,8], [2,4,6]
+    ];
+
+    function makeMove(index) {
+      if (board[index] !== "" || !active) return;
+      board[index] = currentPlayer;
+      const cell = document.getElementsByClassName("cell")[index];
+      cell.innerText = currentPlayer;
+      cell.classList.add(currentPlayer.toLowerCase());
+
+      if (checkWin()) {
+        document.getElementById("status").innerText = `Player ${currentPlayer} Wins!`;
+        active = false;
+        return;
+      }
+      if (!board.includes("")) {
+        document.getElementById("status").innerText = "It's a Draw!";
+        active = false;
+        return;
+      }
+
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      document.getElementById("status").innerText = `Player ${currentPlayer}'s Turn`;
+    }
+
+    function checkWin() {
+      return winPatterns.some(combo => {
+        return board[combo[0]] && board[combo[0]] === board[combo[1]] && board[combo[0]] === board[combo[2]];
+      });
+    }
+
+    function restart() {
+      board = ["", "", "", "", "", "", "", "", ""];
+      currentPlayer = "X";
+      active = true;
+      document.getElementById("status").innerText = "Player X's Turn";
+      const cells = document.getElementsByClassName("cell");
+      for (let cell of cells) {
+        cell.innerText = "";
+        cell.classList.remove("x", "o");
+      }
+    }
+  </script>
+</body>
+</html>
