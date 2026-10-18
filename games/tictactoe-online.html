@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!--
+GAME_META
+title: Tic-Tac-Toe (Online)
+badge: Online Multiplayer
+description: Play live real-time matches across two phones using custom room links.
+-->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Online 2P Tic-Tac-Toe - Play.io</title>
-  <!-- PeerJS library for WebRTC peer-to-peer data connection -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,17 +37,17 @@
 </head>
 <body>
   <div class="top-bar">
-    <a href="games.html">&larr; Back to Games</a>
+    <a href="../games.html">&larr; Back to Games</a>
   </div>
 
   <div class="lobby-box" id="lobby">
     <h2>Online Multiplayer</h2>
-    <p style="color: #8b949e; font-size: 0.9rem;">Host a game and send an invite, or join with a room code.</p>
+    <p style="color: #8b949e; font-size: 0.9rem;">Host a match or join with a room code.</p>
     
     <button class="btn" style="width: 100%; margin-top: 14px;" onclick="hostGame()">Host New Game</button>
     
     <div id="hostInfo" style="display: none; margin-top: 16px;">
-      <p style="color: #8b949e; font-size: 0.85rem;">Room Code:</p>
+      <p style="color: #8b949e; font-size: 0.85rem;">Your Room Code:</p>
       <div class="room-id" id="roomCodeDisplay">Generating...</div>
       
       <div class="btn-group">
@@ -78,7 +83,7 @@
   <script>
     let peer = null;
     let conn = null;
-    let mySymbol = ""; // "X" or "O"
+    let mySymbol = "";
     let currentTurn = "X";
     let boardState = ["", "", "", "", "", "", "", "", ""];
     let gameOver = false;
@@ -90,7 +95,6 @@
       [0,4,8], [2,4,6]
     ];
 
-    // Check URL parameters for direct room join links (e.g., ?room=PLAY-1234)
     window.addEventListener("DOMContentLoaded", () => {
       const params = new URLSearchParams(window.location.search);
       const roomParam = params.get("room");
@@ -123,7 +127,7 @@
 
       peer.on('error', (err) => {
         console.error(err);
-        alert("Connection error occurred. Please try hosting again.");
+        alert("Connection issue. Try hosting again.");
       });
     }
 
@@ -136,9 +140,7 @@
             text: `Join my live Tic-Tac-Toe match! Room: ${createdRoomId}`,
             url: inviteUrl
           });
-        } catch (e) {
-          // Fallback if sharing is dismissed
-        }
+        } catch (e) {}
       } else {
         copyInviteLink();
       }
@@ -168,7 +170,7 @@
 
       peer.on('error', (err) => {
         console.error(err);
-        alert("Could not connect to that room code. Make sure the host is online.");
+        alert("Could not connect. Ensure host is waiting.");
       });
     }
 
@@ -188,7 +190,6 @@
 
     function cellClicked(index) {
       if (gameOver || boardState[index] !== "" || currentTurn !== mySymbol) return;
-
       applyMove(index, mySymbol);
       conn.send({ type: 'move', index: index, symbol: mySymbol });
     }
