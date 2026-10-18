@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+GAME_META
+title: Whack-A-Mole
+badge: Reflex Test
+description: Tap the moles as fast as they pop up out of the holes before time runs out.
+-->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whack-A-Mole - Play.io</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+    .top-bar { width: 100%; max-width: 360px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .top-bar a { color: #58a6ff; text-decoration: none; font-weight: 600; }
+    .stats { display: flex; gap: 30px; font-size: 1.15rem; margin-bottom: 20px; font-weight: bold; }
+    .grid { display: grid; grid-template-columns: repeat(3, 100px); grid-template-rows: repeat(3, 100px); gap: 12px; }
+    .hole { background: #161b22; border: 2px solid #30363d; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; cursor: pointer; user-select: none; position: relative; overflow: hidden; }
+    .hole:active { background: #21262d; }
+    .mole { display: none; }
+    .hole.up .mole { display: block; animation: pop 0.1s ease-out; }
+    @keyframes pop { from { transform: scale(0.5); } to { transform: scale(1); } }
+    .btn { margin-top: 24px; padding: 10px 24px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: #2ea043; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="../games.html">&larr; Back to Games</a>
+  </div>
+
+  <div class="stats">
+    <div>Score: <span id="score">0</span></div>
+    <div>Time: <span id="timer">20</span>s</div>
+  </div>
+
+  <div class="grid">
+    <div class="hole" onclick="bonk(0)"><span class="mole">🐹</span></div>
+    <div class="hole" onclick="bonk(1)"><span class="mole">🐹</span></div>
+    <div class="hole" onclick="bonk(2)"><span class="mole">🐹</span></div>
+    <div class="hole" onclick="bonk(3)"><span class="mole">🐹</span></div>
+    <div class="hole" onclick="bonk(4)"><span class="mole">🐹</span></div>
+    <div class="hole" onclick="bonk(5)"><span class="mole">🐹</span></div>
+    <div class="hole" onclick="bonk(6)"><span class="mole">🐹</span></div>
+    <div class="hole" onclick="bonk(7)"><span class="mole">🐹</span></div>
+    <div class="hole" onclick="bonk(8)"><span class="mole">🐹</span></div>
+  </div>
+
+  <button class="btn" id="startBtn" onclick="startGame()">Start Game</button>
+
+  <script>
+    const holes = document.querySelectorAll('.hole');
+    const scoreBoard = document.getElementById('score');
+    const timerBoard = document.getElementById('timer');
+    const startBtn = document.getElementById('startBtn');
+
+    let lastHole;
+    let timeUp = false;
+    let score = 0;
+    let countdown = 20;
+    let gameInterval;
+    let moleTimeout;
+
+    function randomHole(holes) {
+      const idx = Math.floor(Math.random() * holes.length);
+      const hole = holes[idx];
+      if (hole === lastHole) return randomHole(holes);
+      lastHole = hole;
+      return hole;
+    }
+
+    function peep() {
+      const time = Math.floor(Math.random() * 500) + 600;
+      const hole = randomHole(holes);
+      hole.classList.add('up');
+      moleTimeout = setTimeout(() => {
+        hole.classList.remove('up');
+        if (!timeUp) peep();
+      }, time);
+    }
+
+    function startGame() {
+      score = 0;
+      countdown = 20;
+      timeUp = false;
+      scoreBoard.innerText = score;
+      timerBoard.innerText = countdown;
+      startBtn.disabled = true;
+      startBtn.style.opacity = '0.5';
+
+      peep();
+
+      gameInterval = setInterval(() => {
+        countdown--;
+        timerBoard.innerText = countdown;
+        if (countdown <= 0) {
+          clearInterval(gameInterval);
+          clearTimeout(moleTimeout);
+          timeUp = true;
+          holes.forEach(h => h.classList.remove('up'));
+          startBtn.disabled = false;
+          startBtn.style.opacity = '1';
+          alert(`Game Over! Final Score: ${score}`);
+        }
+      }, 1000);
+    }
+
+    function bonk(index) {
+      const hole = holes[index];
+      if (!hole.classList.contains('up') || timeUp) return;
+      score += 1;
+      hole.classList.remove('up');
+      scoreBoard.innerText = score;
+    }
+  </script>
+</body>
+</html>
