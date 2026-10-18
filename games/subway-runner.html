@@ -6,7 +6,7 @@
       "id": "subway-runner",
       "title": "Subway Runner: Neon Dash",
       "category": "Action / Endless Runner",
-      "description": "Solo 3D infinite runner with coins (+5), obstacle jump clearance bonus (+20), vertical icon HUD, local high scores, and SVG controls.",
+      "description": "Solo 3D runner with rolling neon sphere avatar, 4 difficulty modes, tall unjumpable barriers, coin collection, and vertical icon HUD.",
       "thumbnail": "assets/thumbnails/subway-runner.png",
       "orientation": "landscape",
       "multiplayer": false
@@ -31,7 +31,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #0b0d17;
+            background: #080a14;
             color: #fff;
             touch-action: manipulation;
         }
@@ -59,7 +59,7 @@
             pointer-events: none;
         }
 
-        /* Vertically stacked logo icon buttons */
+        /* Stacked Logo Buttons */
         .vertical-icon-group {
             display: flex;
             flex-direction: column;
@@ -92,7 +92,7 @@
             border-color: #00f2fe;
         }
         .icon-btn:active svg {
-            fill: #0b0d17;
+            fill: #080a14;
         }
 
         /* High Score (Center) */
@@ -104,12 +104,24 @@
             text-align: center;
         }
         .hud-high-score {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 900;
             letter-spacing: 0.8px;
             color: #ffd700;
             text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
             white-space: nowrap;
+        }
+        .difficulty-badge {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 3px;
+            background: rgba(0, 242, 254, 0.2);
+            border: 1px solid #00f2fe;
+            color: #00f2fe;
+            text-transform: uppercase;
         }
 
         /* Current Score & Coins (Right) */
@@ -133,7 +145,7 @@
             text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
         }
 
-        /* Score Popups / Floating Shower */
+        /* Score Popups */
         .score-popups {
             position: absolute;
             top: 0;
@@ -147,7 +159,7 @@
         .popup-float {
             position: absolute;
             font-weight: 900;
-            font-size: 22px;
+            font-size: 20px;
             animation: floatUp 0.8s ease-out forwards;
             text-shadow: 0 0 10px rgba(0,0,0,0.8);
         }
@@ -156,7 +168,7 @@
 
         @keyframes floatUp {
             0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-70px) scale(1.4); opacity: 0; }
+            100% { transform: translateY(-70px) scale(1.35); opacity: 0; }
         }
 
         /* SVG Touch Controls */
@@ -206,14 +218,14 @@
         }
         .ctrl-jump:active svg { fill: #050b14; }
 
-        /* Full Screen Modals / Overlays */
+        /* Full Screen Modals */
         .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(10, 12, 22, 0.94);
+            background: rgba(8, 10, 20, 0.94);
             backdrop-filter: blur(8px);
             z-index: 100;
             display: flex;
@@ -222,16 +234,16 @@
             pointer-events: auto;
         }
         .modal {
-            background: #181d30;
-            padding: 28px;
+            background: #151928;
+            padding: 26px;
             border-radius: 14px;
-            width: 360px;
+            width: 380px;
             max-width: 90%;
             border: 1px solid #2d3758;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 13px;
             text-align: center;
         }
         .modal h2 {
@@ -246,15 +258,41 @@
             text-shadow: 0 0 20px rgba(0, 242, 254, 0.8);
             margin: 4px 0;
         }
-        .high-score-note {
-            font-size: 14px;
+
+        /* Difficulty Picker */
+        .diff-title {
+            font-size: 13px;
             font-weight: 700;
-            color: #ffd700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .diff-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+        .diff-btn {
+            background: #20273d;
+            border: 1px solid #33416b;
+            color: #94a3b8;
+            padding: 8px 4px;
+            font-size: 12px;
+            font-weight: 800;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.15s ease;
+        }
+        .diff-btn.active {
+            background: #00f2fe;
+            color: #080a14;
+            border-color: #00f2fe;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
         }
 
         button.action-btn {
             flex: 1;
-            padding: 14px;
+            padding: 13px;
             border: none;
             border-radius: 8px;
             background: linear-gradient(135deg, #00f2fe, #4facfe);
@@ -284,31 +322,27 @@
 
     <!-- Top Bar HUD -->
     <div class="top-bar">
-        <!-- Vertically Stacked SVG Icons: Back & Pause -->
         <div class="vertical-icon-group">
             <button type="button" class="icon-btn" id="btn-back" aria-label="Back">
-                <!-- Back Icon -->
                 <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
             </button>
             <button type="button" class="icon-btn" id="btn-pause" aria-label="Pause">
-                <!-- Pause Icon -->
-                <svg viewBox="0 0 24 24" id="pause-svg"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
             </button>
         </div>
 
-        <!-- High Score in Center -->
         <div class="top-center">
             <div class="hud-high-score">HIGH SCORE: <span id="ui-high-score">0</span></div>
+            <div class="difficulty-badge" id="ui-diff-badge">NORMAL</div>
         </div>
 
-        <!-- Current Score & Coins on Right -->
         <div class="top-right">
             <div class="hud-stat">SCORE: <span id="ui-score">0</span></div>
             <div class="hud-coins">🪙 <span id="ui-coins">0</span></div>
         </div>
     </div>
 
-    <!-- On-screen Bottom SVG Touch Controls -->
+    <!-- On-screen Bottom SVG Controls -->
     <div class="touch-controls" id="touch-controls-panel" style="display: none;">
         <button type="button" class="ctrl-btn" id="ctrl-left" aria-label="Left">
             <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
@@ -321,14 +355,22 @@
         </button>
     </div>
 
-    <!-- Start / Lobby Overlay -->
+    <!-- Lobby / Start Overlay -->
     <div class="overlay" id="lobby-overlay">
         <div class="modal">
             <h2>Subway Runner</h2>
             <p style="font-size: 13px; color: #94a3b8;">
-                Dodge barriers, jump over obstacles for <b>+20</b>, and collect coins for <b>+5</b>!
+                Jump over low hurdles for <b>+20</b>! Beware of <b>tall barriers</b>—you cannot jump them!
             </p>
-            <div class="high-score-note">Best Record: <span id="lobby-high-score">0</span></div>
+
+            <div class="diff-title">Choose Difficulty</div>
+            <div class="diff-selector">
+                <button type="button" class="diff-btn" data-diff="easy">Easy</button>
+                <button type="button" class="diff-btn active" data-diff="normal">Normal</button>
+                <button type="button" class="diff-btn" data-diff="hard">Hard</button>
+                <button type="button" class="diff-btn" data-diff="pro">Pro</button>
+            </div>
+
             <button type="button" class="action-btn" id="btn-start-run">Start Run</button>
             <button type="button" class="action-btn secondary-btn" id="btn-lobby-back">Back to Catalog</button>
         </div>
@@ -350,7 +392,7 @@
             <h2 style="color: #ff416c;">CRASHED!</h2>
             <div style="font-size: 13px; color: #94a3b8;">FINAL SCORE</div>
             <div class="score-highlight" id="final-score">0</div>
-            <div class="high-score-note">High Score: <span id="death-high-score">0</span></div>
+            <div class="hud-high-score" style="margin-bottom: 5px;">High Score: <span id="death-high-score">0</span></div>
             <button type="button" class="action-btn" id="btn-death-restart">Run Again</button>
             <button type="button" class="action-btn secondary-btn" id="btn-death-quit">Quit to Catalog</button>
         </div>
@@ -358,9 +400,17 @@
 
     <script>
         /* -------------------------------------------------------------
-           1. GAME ENGINE & STATE
+           1. GAME CONFIGURATION & DIFFICULTY SETTINGS
         ------------------------------------------------------------- */
-        let scene, camera, renderer, player;
+        const DIFFICULTY_SETTINGS = {
+            easy:   { baseSpeed: 0.36, speedStep: 0.025, tallChance: 0.15, spawnRate: 0.025, name: "EASY" },
+            normal: { baseSpeed: 0.44, speedStep: 0.035, tallChance: 0.35, spawnRate: 0.035, name: "NORMAL" },
+            hard:   { baseSpeed: 0.52, speedStep: 0.045, tallChance: 0.50, spawnRate: 0.045, name: "HARD" },
+            pro:    { baseSpeed: 0.62, speedStep: 0.055, tallChance: 0.65, spawnRate: 0.055, name: "PRO" }
+        };
+        let currentDifficulty = 'normal';
+
+        let scene, camera, renderer, playerGroup, sphereMesh, orbitalRing1, orbitalRing2;
         const lanes = [-3, 0, 3];
         let currentLane = 1;
         let isJumping = false, jumpVelocity = 0;
@@ -368,10 +418,9 @@
         let distanceScore = 0;
         let bonusScore = 0;
         let coinsCollected = 0;
+        let speed = 0.44;
 
-        const BASE_SPEED = 0.42;
-        let speed = BASE_SPEED;
-        let obstacles = [], coins = [], tracks = [];
+        let obstacles = [], coins = [], tracks = [], particles = [];
         let gameRunning = false;
         let isPaused = false;
         let engineInitialized = false;
@@ -380,39 +429,64 @@
 
         function updateHighScoreDisplay() {
             document.getElementById('ui-high-score').innerText = highScore;
-            document.getElementById('lobby-high-score').innerText = highScore;
             document.getElementById('death-high-score').innerText = highScore;
         }
 
+        /* -------------------------------------------------------------
+           2. 3D SCENE & SPHERE RUNNER
+        ------------------------------------------------------------- */
         function initScene() {
             if (typeof THREE === 'undefined') return;
 
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x0b0d17, 0.015);
+            scene.fog = new THREE.FogExp2(0x080a14, 0.015);
 
             camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 4, 8);
-            camera.rotation.x = -0.3;
+            camera.position.set(0, 4.2, 8.5);
+            camera.rotation.x = -0.32;
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x0b0d17);
+            renderer.setClearColor(0x080a14);
             container.appendChild(renderer.domElement);
 
-            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-            const dirLight = new THREE.DirectionalLight(0x00f2fe, 0.8);
-            dirLight.position.set(5, 10, 7);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            const dirLight = new THREE.DirectionalLight(0x00f2fe, 0.9);
+            dirLight.position.set(5, 12, 7);
             scene.add(ambient, dirLight);
 
-            // Player Mesh
-            const geom = new THREE.BoxGeometry(1.1, 1.8, 1.1);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x38ef7d, roughness: 0.25 });
-            player = new THREE.Mesh(geom, mat);
-            player.position.set(lanes[currentLane], 0.9, 0);
-            scene.add(player);
+            // Sphere / Orb Runner with Orbiting Rings
+            playerGroup = new THREE.Group();
 
-            // Track pieces
+            // Core Neon Sphere
+            const sphereGeom = new THREE.SphereGeometry(0.75, 32, 32);
+            const sphereMat = new THREE.MeshStandardMaterial({
+                color: 0x00f2fe,
+                emissive: 0x007299,
+                roughness: 0.15,
+                metalness: 0.7
+            });
+            sphereMesh = new THREE.Mesh(sphereGeom, sphereMat);
+            playerGroup.add(sphereMesh);
+
+            // Orbiting Ring 1
+            const ringGeom1 = new THREE.TorusGeometry(1.05, 0.05, 8, 32);
+            const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x38ef7d });
+            orbitalRing1 = new THREE.Mesh(ringGeom1, ringMat1);
+            playerGroup.add(orbitalRing1);
+
+            // Orbiting Ring 2
+            const ringGeom2 = new THREE.TorusGeometry(1.15, 0.04, 8, 32);
+            const ringMat2 = new THREE.MeshBasicMaterial({ color: 0xff007f });
+            orbitalRing2 = new THREE.Mesh(ringGeom2, ringMat2);
+            orbitalRing2.rotation.x = Math.PI / 2;
+            playerGroup.add(orbitalRing2);
+
+            playerGroup.position.set(lanes[currentLane], 0.75, 0);
+            scene.add(playerGroup);
+
+            // Road / Track Slices
             for (let i = 0; i < 16; i++) {
                 createTrackSlice(-i * 10);
             }
@@ -423,25 +497,85 @@
         }
 
         function createTrackSlice(zPos) {
-            const geom = new THREE.BoxGeometry(10, 0.2, 10);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x181d30 });
+            const geom = new THREE.BoxGeometry(10.2, 0.2, 10);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x111625 });
             const track = new THREE.Mesh(geom, mat);
             track.position.set(0, -0.1, zPos);
+
+            // Subtle neon lane divider lines
+            const lineGeom = new THREE.BoxGeometry(0.1, 0.22, 10);
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0x1f2945 });
+            const leftLine = new THREE.Mesh(lineGeom, lineMat);
+            leftLine.position.set(-1.5, 0, 0);
+            const rightLine = new THREE.Mesh(lineGeom, lineMat);
+            rightLine.position.set(1.5, 0, 0);
+            track.add(leftLine, rightLine);
+
             scene.add(track);
             tracks.push(track);
         }
 
+        /* -------------------------------------------------------------
+           3. OBSTACLES: LOW HURDLES, TALL WALLS, CONES
+        ------------------------------------------------------------- */
         function spawnObstacle(zPos) {
             const laneIdx = Math.floor(Math.random() * 3);
-            const geom = new THREE.BoxGeometry(1.6, 1.3, 1.2);
-            const mat = new THREE.MeshStandardMaterial({ color: 0xff416c });
-            const obs = new THREE.Mesh(geom, mat);
-            obs.position.set(lanes[laneIdx], 0.65, zPos);
-            scene.add(obs);
-            obstacles.push({ mesh: obs, lane: laneIdx, cleared: false });
+            const cfg = DIFFICULTY_SETTINGS[currentDifficulty];
+            const isTall = Math.random() < cfg.tallChance;
 
-            // Spawn coins in alternate lanes
-            if (Math.random() < 0.6) {
+            let obsMesh;
+            let type = "hurdle"; // hurdle, tall, cone
+            let height = 1.1;
+
+            if (isTall) {
+                // TALL UNJUMPABLE MONOLITH (Height 3.6m)
+                type = "tall";
+                height = 3.6;
+                const geom = new THREE.BoxGeometry(1.8, height, 1.2);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x7928ca,
+                    emissive: 0x2d004d,
+                    roughness: 0.3
+                });
+                obsMesh = new THREE.Mesh(geom, mat);
+                obsMesh.position.set(lanes[laneIdx], height / 2, zPos);
+            } else if (Math.random() < 0.5) {
+                // LOW LASER HURDLE (Jumpable for +20)
+                type = "hurdle";
+                height = 0.95;
+                const geom = new THREE.BoxGeometry(1.9, height, 0.8);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0xff3366,
+                    emissive: 0x66001a,
+                    roughness: 0.3
+                });
+                obsMesh = new THREE.Mesh(geom, mat);
+                obsMesh.position.set(lanes[laneIdx], height / 2, zPos);
+            } else {
+                // SPIKE CONE (Narrower Jump Window)
+                type = "cone";
+                height = 1.25;
+                const geom = new THREE.ConeGeometry(0.9, height, 16);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0xff8c00,
+                    emissive: 0x662900,
+                    roughness: 0.2
+                });
+                obsMesh = new THREE.Mesh(geom, mat);
+                obsMesh.position.set(lanes[laneIdx], height / 2, zPos);
+            }
+
+            scene.add(obsMesh);
+            obstacles.push({
+                mesh: obsMesh,
+                lane: laneIdx,
+                type: type,
+                height: height,
+                cleared: false
+            });
+
+            // Coin Generation in free lanes
+            if (Math.random() < 0.65) {
                 let coinLane = (laneIdx + (Math.random() < 0.5 ? 1 : 2)) % 3;
                 spawnCoin(coinLane, zPos);
             }
@@ -449,7 +583,12 @@
 
         function spawnCoin(laneIdx, zPos) {
             const geom = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 16);
-            const mat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xffd700,
+                emissive: 0x443300,
+                metalness: 0.85,
+                roughness: 0.2
+            });
             const coinMesh = new THREE.Mesh(geom, mat);
             coinMesh.rotation.x = Math.PI / 2;
             coinMesh.position.set(lanes[laneIdx], 0.8, zPos);
@@ -457,18 +596,13 @@
             coins.push({ mesh: coinMesh, lane: laneIdx });
         }
 
-        /* -------------------------------------------------------------
-           2. VISUAL SCORE SHOWER FEEDBACK
-        ------------------------------------------------------------- */
         function triggerScoreShower(text, type) {
             const container = document.getElementById('score-popups');
             const popup = document.createElement('div');
             popup.className = `popup-float ${type === 'jump' ? 'popup-jump' : 'popup-coin'}`;
             popup.innerText = text;
-
-            // Center of screen near the player
             popup.style.left = `${window.innerWidth / 2 - 20 + (Math.random() * 40 - 20)}px`;
-            popup.style.top = `${window.innerHeight / 2 + (Math.random() * 30 - 15)}px`;
+            popup.style.top = `${window.innerHeight / 2 - 10 + (Math.random() * 30 - 15)}px`;
 
             container.appendChild(popup);
             setTimeout(() => {
@@ -477,7 +611,7 @@
         }
 
         /* -------------------------------------------------------------
-           3. CONTROLS
+           4. CONTROLS & MOVEMENTS
         ------------------------------------------------------------- */
         function moveLeft() {
             if (!gameRunning || isPaused) return;
@@ -493,7 +627,7 @@
             if (!gameRunning || isPaused) return;
             if (!isJumping) {
                 isJumping = true;
-                jumpVelocity = 0.35;
+                jumpVelocity = 0.36; // Sufficient for low hurdles & cones, impossible for tall walls
             }
         }
 
@@ -508,50 +642,60 @@
         }
 
         /* -------------------------------------------------------------
-           4. RUNTIME LOOP & COLLISION LOGIC
+           5. GAME LOOP & ANIMATION
         ------------------------------------------------------------- */
         function gameLoop() {
             if (!gameRunning || isPaused) return;
             requestAnimationFrame(gameLoop);
 
             // Interpolate lane position
-            player.position.x += (lanes[currentLane] - player.position.x) * 0.25;
+            playerGroup.position.x += (lanes[currentLane] - playerGroup.position.x) * 0.25;
 
-            // Jump handling
+            // Rolling Sphere + Orbital Rings Rotation
+            sphereMesh.rotation.x -= speed * 0.5;
+            orbitalRing1.rotation.y += 0.05;
+            orbitalRing1.rotation.x += 0.03;
+            orbitalRing2.rotation.z += 0.04;
+            orbitalRing2.rotation.y += 0.02;
+
+            // Jump Physics
             if (isJumping) {
-                player.position.y += jumpVelocity;
-                jumpVelocity -= 0.018;
-                if (player.position.y <= 0.9) {
-                    player.position.y = 0.9;
+                playerGroup.position.y += jumpVelocity;
+                jumpVelocity -= 0.019;
+                if (playerGroup.position.y <= 0.75) {
+                    playerGroup.position.y = 0.75;
                     isJumping = false;
                 }
             }
 
-            // Move tracks
+            // Move Track Slices
             for (let t of tracks) {
                 t.position.z += speed;
                 if (t.position.z > 10) t.position.z -= 160;
             }
 
-            // Spawn obstacles
-            if (Math.random() < 0.035 && (obstacles.length === 0 || obstacles[obstacles.length - 1].mesh.position.z > -100)) {
+            // Spawn Obstacles Based on Difficulty
+            const cfg = DIFFICULTY_SETTINGS[currentDifficulty];
+            if (Math.random() < cfg.spawnRate && (obstacles.length === 0 || obstacles[obstacles.length - 1].mesh.position.z > -95)) {
                 spawnObstacle(-130);
             }
 
-            // Manage Obstacles & Jump Clearance (+20)
+            // Update Obstacles & Check Collisions
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obs = obstacles[i];
                 obs.mesh.position.z += speed;
 
-                const zDist = Math.abs(obs.mesh.position.z - player.position.z);
+                const zDist = Math.abs(obs.mesh.position.z - playerGroup.position.z);
 
-                // Collision detection
-                if (zDist < 1.0 && obs.lane === currentLane) {
-                    if (player.position.y < 1.4) {
+                if (zDist < 1.1 && obs.lane === currentLane) {
+                    // Check if player's sphere clears the top boundary
+                    const playerBottom = playerGroup.position.y - 0.6;
+
+                    if (playerBottom < obs.height) {
                         endGame();
                         return;
                     } else if (!obs.cleared) {
-                        // Successfully jumped directly over obstacle
+                        // Jump clearance bonus for jumpable hurdles & cones
                         obs.cleared = true;
                         bonusScore += 20;
                         triggerScoreShower('+20 JUMP!', 'jump');
@@ -564,13 +708,13 @@
                 }
             }
 
-            // Manage Coins (+5)
+            // Update Coins
             for (let i = coins.length - 1; i >= 0; i--) {
                 const c = coins[i];
                 c.mesh.position.z += speed;
-                c.mesh.rotation.z += 0.05;
+                c.mesh.rotation.z += 0.06;
 
-                const zDist = Math.abs(c.mesh.position.z - player.position.z);
+                const zDist = Math.abs(c.mesh.position.z - playerGroup.position.z);
 
                 if (zDist < 1.1 && c.lane === currentLane) {
                     coinsCollected++;
@@ -589,14 +733,13 @@
                 }
             }
 
-            // Dynamic Total Score
+            // Score & Dynamic Speed Progression
             distanceScore += 1;
             const currentTotal = Math.floor(distanceScore / 5) + bonusScore;
             document.getElementById('ui-score').innerText = currentTotal;
 
-            // Speed Scaling: Step up by 0.04 every +100 total score points
             const speedTier = Math.floor(currentTotal / 100);
-            speed = BASE_SPEED + (speedTier * 0.04);
+            speed = cfg.baseSpeed + (speedTier * cfg.speedStep);
 
             renderer.render(scene, camera);
         }
@@ -623,6 +766,14 @@
             }
         }
 
+        function setDifficulty(diff) {
+            currentDifficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-diff') === diff);
+            });
+            document.getElementById('ui-diff-badge').innerText = DIFFICULTY_SETTINGS[diff].name;
+        }
+
         function startGame() {
             if (!engineInitialized) initScene();
 
@@ -634,16 +785,15 @@
             distanceScore = 0;
             bonusScore = 0;
             coinsCollected = 0;
-            speed = BASE_SPEED;
+            speed = DIFFICULTY_SETTINGS[currentDifficulty].baseSpeed;
             currentLane = 1;
             isJumping = false;
             isPaused = false;
 
             document.getElementById('ui-coins').innerText = '0';
             document.getElementById('ui-score').innerText = '0';
-            player.position.set(lanes[1], 0.9, 0);
+            playerGroup.position.set(lanes[1], 0.75, 0);
 
-            // Clear active entities
             for (let obs of obstacles) scene.remove(obs.mesh);
             for (let c of coins) scene.remove(c.mesh);
             obstacles = [];
@@ -674,7 +824,7 @@
         }
 
         /* -------------------------------------------------------------
-           5. EVENT LISTENERS
+           6. EVENT BINDINGS
         ------------------------------------------------------------- */
         function bind(id, action) {
             const el = document.getElementById(id);
@@ -688,18 +838,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateHighScoreDisplay();
 
-            // Direct Touch Controls
+            // Touch Controls
             bind('ctrl-left', moveLeft);
             bind('ctrl-right', moveRight);
             bind('ctrl-jump', doJump);
 
-            // Icon HUD Buttons
+            // Icon HUD
             bind('btn-back', exitToCatalog);
             bind('btn-pause', togglePause);
 
-            // Lobby Buttons
+            // Lobby & Difficulty
             bind('btn-start-run', startGame);
             bind('btn-lobby-back', exitToCatalog);
+
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    setDifficulty(btn.getAttribute('data-diff'));
+                });
+            });
 
             // Pause Menu
             bind('btn-resume', togglePause);
