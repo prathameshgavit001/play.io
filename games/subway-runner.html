@@ -14,93 +14,107 @@
     PLAYIO_GAME_METADATA_END -->
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Subway Runner: Neon Dash | Playio</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #0f111a; color: #fff; }
-        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0d17; color: #fff; }
+        
+        /* Three.js Canvas container - isolated background */
+        #canvas-container {
+            width: 100%; height: 100%; position: absolute;
+            top: 0; left: 0; z-index: 1; pointer-events: none;
+        }
 
         /* Top Bar Navigation & Stats */
         .top-bar {
-            position: absolute; top: 16px; left: 16px; right: 16px; z-index: 10;
-            display: flex; justify-content: space-between; align-items: center; pointer-events: none;
+            position: absolute; top: 16px; left: 16px; right: 16px;
+            z-index: 50; display: flex; justify-content: space-between;
+            align-items: center; pointer-events: none;
         }
-        .top-group { display: flex; align-items: center; gap: 12px; pointer-events: auto; }
+        .top-group { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
         .hud-stat {
-            font-size: 20px; font-weight: 800; letter-spacing: 1px;
+            font-size: 18px; font-weight: 800; letter-spacing: 1px;
             text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
         }
         .hud-btn {
             background: rgba(24, 29, 48, 0.85); border: 1px solid #33416b;
-            color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 13px;
+            color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px;
             font-weight: 700; cursor: pointer; transition: 0.15s ease; backdrop-filter: blur(4px);
+            pointer-events: auto;
         }
-        .hud-btn:hover { background: #222a45; border-color: #00f2fe; }
+        .hud-btn:active { background: #00f2fe; color: #0b0d17; }
 
         .room-tag {
             background: rgba(16, 20, 35, 0.85); padding: 6px 12px; border-radius: 6px;
-            border: 1px solid #38ef7d; font-size: 13px; font-weight: 600;
+            border: 1px solid #38ef7d; font-size: 12px; font-weight: 700;
         }
 
-        /* On-Screen Mobile / Desktop Touch Controls */
+        /* On-Screen Touch / Click Controls */
         .touch-controls {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 16px; z-index: 10; pointer-events: auto;
+            position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 20px; z-index: 60; pointer-events: auto;
         }
         .ctrl-btn {
-            width: 68px; height: 68px; border-radius: 50%; border: 2px solid rgba(0, 242, 254, 0.4);
-            background: rgba(15, 17, 26, 0.65); backdrop-filter: blur(8px); color: #fff;
-            font-size: 22px; font-weight: bold; display: flex; justify-content: center;
-            align-items: center; cursor: pointer; transition: 0.1s transform, 0.1s background;
-            -webkit-tap-highlight-color: transparent;
+            width: 72px; height: 72px; border-radius: 50%;
+            border: 2px solid rgba(0, 242, 254, 0.5);
+            background: rgba(15, 17, 26, 0.75); backdrop-filter: blur(8px);
+            color: #fff; font-size: 24px; font-weight: 900;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
         .ctrl-btn:active {
-            transform: scale(0.92); background: rgba(0, 242, 254, 0.3); border-color: #00f2fe;
+            transform: scale(0.92); background: #00f2fe; color: #050b14;
         }
-        .ctrl-jump { border-color: rgba(56, 239, 125, 0.5); }
-        .ctrl-jump:active { background: rgba(56, 239, 125, 0.3); border-color: #38ef7d; }
+        .ctrl-jump { border-color: rgba(56, 239, 125, 0.6); }
+        .ctrl-jump:active { background: #38ef7d; color: #050b14; }
 
         /* Full Screen Modals / Overlays */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 12, 22, 0.92); backdrop-filter: blur(6px); z-index: 30;
-            display: flex; justify-content: center; align-items: center;
+            background: rgba(10, 12, 22, 0.92); backdrop-filter: blur(8px);
+            z-index: 100; display: flex; justify-content: center; align-items: center;
+            pointer-events: auto;
         }
         .modal {
             background: #181d30; padding: 28px; border-radius: 14px;
-            width: 400px; max-width: 90%; border: 1px solid #2d3758;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7); display: flex;
+            width: 380px; max-width: 90%; border: 1px solid #2d3758;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8); display: flex;
             flex-direction: column; gap: 14px; text-align: center;
+            position: relative; z-index: 110;
         }
-        .modal h2 { font-size: 24px; font-weight: 900; color: #00f2fe; letter-spacing: 0.5px; }
+        .modal h2 { font-size: 24px; font-weight: 900; color: #00f2fe; }
         .score-highlight {
-            font-size: 38px; font-weight: 900; color: #ffffff;
-            text-shadow: 0 0 18px rgba(0, 242, 254, 0.8); margin: 8px 0;
+            font-size: 42px; font-weight: 900; color: #ffffff;
+            text-shadow: 0 0 20px rgba(0, 242, 254, 0.8); margin: 6px 0;
         }
         .modal input {
             background: #0d101d; border: 1px solid #33416b; color: #fff;
-            padding: 10px 14px; border-radius: 6px; font-size: 14px; width: 100%; outline: none;
+            padding: 12px 14px; border-radius: 8px; font-size: 14px; width: 100%;
+            outline: none; pointer-events: auto;
         }
         .modal input:focus { border-color: #00f2fe; }
         .btn-group { display: flex; gap: 10px; }
         button.action-btn {
-            flex: 1; padding: 12px; border: none; border-radius: 6px;
+            flex: 1; padding: 12px; border: none; border-radius: 8px;
             background: linear-gradient(135deg, #00f2fe, #4facfe); color: #050b14;
             font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.15s ease;
+            pointer-events: auto;
         }
-        button.action-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+        button.action-btn:active { transform: scale(0.98); opacity: 0.9; }
         button.secondary-btn {
             background: #252e4d; color: #e2e8f0;
         }
-        button.secondary-btn:hover { background: #323d66; }
+        button.secondary-btn:active { background: #323d66; }
 
         /* Scoreboard Panel */
         #scoreboard-panel {
-            position: absolute; bottom: 100px; right: 20px; z-index: 15;
-            background: rgba(16, 20, 35, 0.9); border: 1px solid #33416b;
+            position: absolute; bottom: 110px; right: 20px; z-index: 70;
+            background: rgba(16, 20, 35, 0.92); border: 1px solid #33416b;
             border-radius: 10px; padding: 14px 18px; width: 280px; max-height: 280px;
-            overflow-y: auto; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            overflow-y: auto; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            pointer-events: auto;
         }
         #scoreboard-panel h3 {
             font-size: 13px; color: #00f2fe; margin-bottom: 10px;
@@ -112,7 +126,9 @@
         }
         .score-entry.self { color: #38ef7d; font-weight: 800; }
     </style>
+    <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- PeerJS CDN -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
@@ -122,8 +138,8 @@
     <!-- Top Bar Controls & Stats -->
     <div class="top-bar">
         <div class="top-group">
-            <button class="hud-btn" onclick="exitToCatalog()">◀ Back</button>
-            <button class="hud-btn" id="pause-toggle-btn" onclick="togglePause()">Pause</button>
+            <button class="hud-btn" id="btn-back">◀ Back</button>
+            <button class="hud-btn" id="btn-pause">Pause</button>
             <div class="hud-stat">SCORE: <span id="ui-score">0</span></div>
         </div>
 
@@ -131,22 +147,22 @@
             <div class="room-tag" id="ui-room-tag" style="display: none;">
                 Room: <span id="ui-room-name">----</span> | PIN: <span id="ui-pin-name">----</span>
             </div>
-            <button class="hud-btn" id="hud-leaderboard-btn" style="display: none;" onclick="toggleLeaderboard()">Leaderboard</button>
+            <button class="hud-btn" id="btn-toggle-lb" style="display: none;">Leaderboard</button>
         </div>
     </div>
 
     <!-- On-screen directional & jump controls -->
     <div class="touch-controls" id="touch-controls-panel" style="display: none;">
-        <div class="ctrl-btn" id="btn-left" onclick="moveLeft()">◀</div>
-        <div class="ctrl-btn ctrl-jump" id="btn-jump" onclick="doJump()">▲</div>
-        <div class="ctrl-btn" id="btn-right" onclick="moveRight()">▶</div>
+        <div class="ctrl-btn" id="ctrl-left">◀</div>
+        <div class="ctrl-btn ctrl-jump" id="ctrl-jump">▲</div>
+        <div class="ctrl-btn" id="ctrl-right">▶</div>
     </div>
 
     <!-- Live In-Game Room Scoreboard -->
     <div id="scoreboard-panel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <h3>Room Leaderboard</h3>
-            <span style="cursor: pointer; font-size: 14px; color: #94a3b8;" onclick="toggleLeaderboard()">✕</span>
+            <span style="cursor: pointer; font-size: 16px; color: #94a3b8;" id="btn-close-lb">✕</span>
         </div>
         <div id="leaderboard-list"></div>
     </div>
@@ -159,23 +175,23 @@
             <input type="text" id="player-nickname" placeholder="Nickname (e.g. SpeedDemon)" maxlength="12" value="Runner1">
 
             <div class="btn-group">
-                <button class="action-btn" onclick="showCreateRoom()">Create Room</button>
-                <button class="action-btn secondary-btn" onclick="showJoinRoom()">Join Room</button>
+                <button class="action-btn" id="btn-show-create">Create Room</button>
+                <button class="action-btn secondary-btn" id="btn-show-join">Join Room</button>
             </div>
 
             <div id="create-fields" style="display:none; flex-direction:column; gap:10px;">
                 <input type="text" id="create-pin" placeholder="Set Room PIN (4 digits)" maxlength="4">
-                <button class="action-btn" onclick="initHostRoom()">Launch & Host</button>
+                <button class="action-btn" id="btn-host-launch">Launch & Host</button>
             </div>
 
             <div id="join-fields" style="display:none; flex-direction:column; gap:10px;">
                 <input type="text" id="join-room-id" placeholder="Enter 6-digit Room Code" maxlength="6">
                 <input type="text" id="join-pin" placeholder="Enter Room PIN" maxlength="4">
-                <button class="action-btn" onclick="initJoinRoom()">Connect & Play</button>
+                <button class="action-btn" id="btn-join-launch">Connect & Play</button>
             </div>
 
-            <button class="action-btn secondary-btn" onclick="startSolo()">Play Solo</button>
-            <button class="action-btn secondary-btn" onclick="exitToCatalog()">Back to Catalog</button>
+            <button class="action-btn secondary-btn" id="btn-play-solo">Play Solo</button>
+            <button class="action-btn secondary-btn" id="btn-lobby-back">Back to Catalog</button>
         </div>
     </div>
 
@@ -183,10 +199,10 @@
     <div class="overlay" id="pause-overlay" style="display: none;">
         <div class="modal">
             <h2>Game Paused</h2>
-            <button class="action-btn" onclick="togglePause()">Resume</button>
-            <button class="action-btn secondary-btn" onclick="showLeaderboardModal()">View Leaderboard</button>
-            <button class="action-btn secondary-btn" onclick="restartGame()">Restart</button>
-            <button class="action-btn secondary-btn" onclick="exitToCatalog()">Quit to Catalog</button>
+            <button class="action-btn" id="btn-resume">Resume</button>
+            <button class="action-btn secondary-btn" id="btn-pause-lb">View Leaderboard</button>
+            <button class="action-btn secondary-btn" id="btn-pause-restart">Restart</button>
+            <button class="action-btn secondary-btn" id="btn-pause-quit">Quit to Catalog</button>
         </div>
     </div>
 
@@ -196,15 +212,15 @@
             <h2 style="color: #ff416c;">CRASHED!</h2>
             <div style="font-size: 13px; color: #94a3b8;">FINAL SCORE</div>
             <div class="score-highlight" id="final-score">0</div>
-            <button class="action-btn" onclick="restartGame()">Run Again</button>
-            <button class="action-btn secondary-btn" onclick="showLeaderboardModal()">View Leaderboard</button>
-            <button class="action-btn secondary-btn" onclick="exitToCatalog()">Quit to Catalog</button>
+            <button class="action-btn" id="btn-death-restart">Run Again</button>
+            <button class="action-btn secondary-btn" id="btn-death-lb">View Leaderboard</button>
+            <button class="action-btn secondary-btn" id="btn-death-quit">Quit to Catalog</button>
         </div>
     </div>
 
     <script>
         /* -------------------------------------------------------------
-           1. THREE.JS 3D ENGINE & MECHANICS
+           1. THREE.JS 3D ENGINE
         ------------------------------------------------------------- */
         let scene, camera, renderer, player;
         const lanes = [-3, 0, 3];
@@ -218,7 +234,7 @@
         function initScene() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x0f111a, 0.015);
+            scene.fog = new THREE.FogExp2(0x0b0d17, 0.015);
 
             camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 4, 8);
@@ -226,7 +242,7 @@
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x0f111a);
+            renderer.setClearColor(0x0b0d17);
             container.appendChild(renderer.domElement);
 
             const ambient = new THREE.AmbientLight(0xffffff, 0.7);
@@ -234,20 +250,21 @@
             dirLight.position.set(5, 10, 7);
             scene.add(ambient, dirLight);
 
-            // Player Avatar
+            // Player mesh
             const geom = new THREE.BoxGeometry(1.1, 1.8, 1.1);
             const mat = new THREE.MeshStandardMaterial({ color: 0x38ef7d, roughness: 0.25 });
             player = new THREE.Mesh(geom, mat);
             player.position.set(lanes[currentLane], 0.9, 0);
             scene.add(player);
 
-            // Tracks
+            // Track pieces
             for (let i = 0; i < 16; i++) {
                 createTrackSlice(-i * 10);
             }
 
             window.addEventListener('resize', onWindowResize);
             document.addEventListener('keydown', handleKeyInput);
+            bindEvents();
         }
 
         function createTrackSlice(zPos) {
@@ -269,9 +286,6 @@
             obstacles.push({ mesh: obs, lane: laneIdx });
         }
 
-        /* -------------------------------------------------------------
-           2. CONTROLS (ON-SCREEN BUTTONS + KEYBOARD)
-        ------------------------------------------------------------- */
         function moveLeft() {
             if (!gameRunning || isPaused) return;
             if (currentLane > 0) currentLane--;
@@ -295,26 +309,17 @@
                 if (gameRunning) togglePause();
                 return;
             }
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-                moveLeft();
-            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-                moveRight();
-            } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
-                doJump();
-            }
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
+            else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
+            else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') doJump();
         }
 
-        /* -------------------------------------------------------------
-           3. RUNTIME LOOP & NAVIGATION
-        ------------------------------------------------------------- */
         function gameLoop() {
             if (!gameRunning || isPaused) return;
             requestAnimationFrame(gameLoop);
 
-            // Lane interpolation
             player.position.x += (lanes[currentLane] - player.position.x) * 0.25;
 
-            // Jump handling
             if (isJumping) {
                 player.position.y += jumpVelocity;
                 jumpVelocity -= 0.018;
@@ -324,18 +329,15 @@
                 }
             }
 
-            // Move track slices
             for (let t of tracks) {
                 t.position.z += speed;
                 if (t.position.z > 10) t.position.z -= 160;
             }
 
-            // Spawn obstacles
             if (Math.random() < 0.035 && (obstacles.length === 0 || obstacles[obstacles.length - 1].mesh.position.z > -100)) {
                 spawnObstacle(-130);
             }
 
-            // Update & check collisions
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obs = obstacles[i];
                 obs.mesh.position.z += speed;
@@ -370,7 +372,7 @@
             if (!gameRunning) return;
             isPaused = !isPaused;
             document.getElementById('pause-overlay').style.display = isPaused ? 'flex' : 'none';
-            document.getElementById('pause-toggle-btn').innerText = isPaused ? 'Resume' : 'Pause';
+            document.getElementById('btn-pause').innerText = isPaused ? 'Resume' : 'Pause';
             if (!isPaused) requestAnimationFrame(gameLoop);
         }
 
@@ -393,7 +395,7 @@
             currentLane = 1;
             isJumping = false;
             isPaused = false;
-            document.getElementById('pause-toggle-btn').innerText = 'Pause';
+            document.getElementById('btn-pause').innerText = 'Pause';
             player.position.set(lanes[1], 0.9, 0);
 
             for (let obs of obstacles) scene.remove(obs.mesh);
@@ -418,7 +420,7 @@
         }
 
         /* -------------------------------------------------------------
-           4. MULTIPLAYER ROOMS & SCOREBOARDS (PeerJS)
+           2. MULTIPLAYER ROOMS & SCOREBOARDS (PeerJS)
         ------------------------------------------------------------- */
         let peer = null;
         let connections = [];
@@ -427,16 +429,6 @@
         let roomPIN = "";
         let nickname = "Runner";
         let scoreTable = {};
-
-        function showCreateRoom() {
-            document.getElementById('create-fields').style.display = 'flex';
-            document.getElementById('join-fields').style.display = 'none';
-        }
-
-        function showJoinRoom() {
-            document.getElementById('join-fields').style.display = 'flex';
-            document.getElementById('create-fields').style.display = 'none';
-        }
 
         function startSolo() {
             nickname = document.getElementById('player-nickname').value.trim() || "Runner";
@@ -447,15 +439,39 @@
 
         function setupRoomUI(code, pin) {
             document.getElementById('ui-room-tag').style.display = 'block';
-            document.getElementById('hud-leaderboard-btn').style.display = 'block';
+            document.getElementById('btn-toggle-lb').style.display = 'block';
             document.getElementById('ui-room-name').innerText = code;
             document.getElementById('ui-pin-name').innerText = pin;
         }
 
         function toggleLeaderboard() {
             const panel = document.getElementById('scoreboard-panel');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
         }
 
         function showLeaderboardModal() {
-            document.getElementById('scoreboard-panel')
+            document.getElementById('scoreboard-panel').style.display = 'block';
+        }
+
+        function initHostRoom() {
+            nickname = document.getElementById('player-nickname').value.trim() || "HostRunner";
+            roomPIN = document.getElementById('create-pin').value.trim();
+            roomCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+            try {
+                peer = new Peer("playio-subway-" + roomCode);
+            } catch (e) {
+                alert("PeerJS initialization error. Playing solo mode.");
+                startSolo();
+                return;
+            }
+
+            peer.on('open', () => {
+                isHost = true;
+                setupRoomUI(roomCode, roomPIN || "None");
+                scoreTable[peer.id] = { name: nickname, score: 0 };
+                renderScoreboard();
+                startGame();
+            });
+
+         
