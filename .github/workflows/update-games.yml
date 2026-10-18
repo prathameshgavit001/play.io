@@ -1,0 +1,78 @@
+name: Auto Update Games Catalog
+
+on:
+  push:
+    paths:
+      - 'games/**.html'
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Rebuild games.html Catalog
+        run: |
+          python3 - << 'EOF'
+          import os, re, glob
+
+          cards = []
+          game_files = sorted(glob.glob('games/*.html'))
+
+          for filepath in game_files:
+              with open(filepath, 'r', encoding='utf-8') as f:
+                  content = f.read()
+              
+              title_m = re.search(r'title:\s*(.*)', content, re.IGNORECASE)
+              badge_m = re.search(r'badge:\s*(.*)', content, re.IGNORECASE)
+              desc_m = re.search(r'description:\s*(.*)', content, re.IGNORECASE)
+              
+              base_name = os.path.basename(filepath).replace('.html', '').capitalize()
+              title = title_m.group(1).strip() if title_m else base_name
+              badge = badge_m.group(1).strip() if badge_m else 'Mini Game'
+              desc = desc_m.group(1).strip() if desc_m else 'Play instantly in your browser.'
+              
+              badge_class = "badge-arcade"
+              badge_lower = badge.lower()
+              if "strategy" in badge_lower or "puzzle" in badge_lower:
+                  badge_class = "badge-puzzle"
+              elif "reflex" in badge_lower or "online" in badge_lower or "speed" in badge_lower:
+                  badge_class = "badge-reflex"
+
+              card_html = f"""      <!-- {title} -->
+            <div class="game-card">
+              <div>
+                <span class="badge {badge_class}">{badge}</span>
+                <h3>{title}</h3>
+                <p>{desc}</p>
+              </div>
+              <a href="{filepath}" class="btn-play">Play {title}</a>
+            </div>"""
+              cards.append(card_html)
+
+          with open('games.html', 'r', encoding='utf-8') as f:
+              html = f.read()
+
+          pattern = r'<!-- AUTO_GAMES_START -->[\s\S]*?<!-- AUTO_GAMES_END -->'
+          replacement = '<!-- AUTO_GAMES_START -->\n' + '\n\n'.join(cards) + '\n      <!-- AUTO_GAMES_END -->'
+          new_html = re.sub(pattern, replacement, html)
+
+          with open('games.html', 'w', encoding='utf-8') as f:
+              f.write(new_html)
+          EOF
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add games.html
+          git commit -m "Auto-update games catalog [skip ci]" || echo "No changes to commit"
+          git push
+          
