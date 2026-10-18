@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!--
+GAME_META
+title: Memory Match
+badge: Puzzle
+description: Flip and match pairs of emojis in as few moves as possible.
+-->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Memory Match - Play.io</title>
@@ -13,18 +19,18 @@
     .card { width: 75px; height: 75px; background: #161b22; border: 2px solid #30363d; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; user-select: none; }
     .card.revealed { background: #21262d; border-color: #58a6ff; }
     .card.matched { background: #238636; border-color: #2ea043; cursor: default; }
-    .btn { margin-top: 24px; padding: 10px 24px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn { margin-top: 24px; padding: 12px 28px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
     .btn:hover { background: #2ea043; }
   </style>
 </head>
 <body>
   <div class="top-bar">
-    <a href="games.html">&larr; Back to Games</a>
+    <a href="../games.html">&larr; Back to Games</a>
     <div>Moves: <span id="moves">0</span></div>
   </div>
 
   <div class="grid" id="grid"></div>
-  <button class="btn" onclick="init()">Restart Game</button>
+  <button class="btn" onclick="init()">Restart Match</button>
 
   <script>
     const emojis = ["🎮", "👾", "🕹️", "⚡", "🚀", "💎"];
@@ -34,9 +40,7 @@
     let moves = 0;
     let lock = false;
 
-    function shuffle(arr) {
-      return arr.sort(() => Math.random() - 0.5);
-    }
+    function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
 
     function init() {
       const grid = document.getElementById("grid");
