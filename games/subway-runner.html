@@ -6,7 +6,7 @@
       "id": "subway-runner",
       "title": "Subway Runner: Neon Dash",
       "category": "Action / Endless Runner",
-      "description": "Solo 3D infinite runner with local high-score tracking, SVG touch controls, pause menu, and gradual speed progression.",
+      "description": "Solo 3D infinite runner with coins (+5), obstacle jump clearance bonus (+20), vertical icon HUD, local high scores, and SVG controls.",
       "thumbnail": "assets/thumbnails/subway-runner.png",
       "orientation": "landscape",
       "multiplayer": false
@@ -49,59 +49,117 @@
         /* Top HUD */
         .top-bar {
             position: absolute;
-            top: 16px;
-            left: 16px;
-            right: 16px;
+            top: 14px;
+            left: 14px;
+            right: 14px;
             z-index: 50;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             pointer-events: none;
         }
-        .top-left, .top-center, .top-right {
+
+        /* Vertically stacked logo icon buttons */
+        .vertical-icon-group {
             display: flex;
-            align-items: center;
-            gap: 12px;
+            flex-direction: column;
+            gap: 10px;
             pointer-events: auto;
         }
+
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(24, 29, 48, 0.85);
+            border: 1px solid #33416b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            outline: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+        .icon-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: #00f2fe;
+            pointer-events: none;
+        }
+        .icon-btn:active {
+            background: #00f2fe;
+            border-color: #00f2fe;
+        }
+        .icon-btn:active svg {
+            fill: #0b0d17;
+        }
+
+        /* High Score (Center) */
         .top-center {
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
             pointer-events: none;
+            text-align: center;
+        }
+        .hud-high-score {
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 0.8px;
+            color: #ffd700;
+            text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+            white-space: nowrap;
         }
 
-        .hud-btn {
-            background: rgba(24, 29, 48, 0.85);
-            border: 1px solid #33416b;
-            color: #fff;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
+        /* Current Score & Coins (Right) */
+        .top-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            pointer-events: none;
         }
-        .hud-btn:active {
-            background: #00f2fe;
-            color: #0b0d17;
-        }
-
         .hud-stat {
             font-size: 18px;
             font-weight: 800;
             letter-spacing: 1px;
             text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
         }
-        .hud-high-score {
-            font-size: 20px;
-            font-weight: 900;
-            letter-spacing: 1px;
+        .hud-coins {
+            font-size: 14px;
+            font-weight: 700;
             color: #ffd700;
-            text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
         }
 
-        /* Bottom SVG Touch / Image Buttons */
+        /* Score Popups / Floating Shower */
+        .score-popups {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 55;
+            overflow: hidden;
+        }
+        .popup-float {
+            position: absolute;
+            font-weight: 900;
+            font-size: 22px;
+            animation: floatUp 0.8s ease-out forwards;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+        .popup-jump { color: #38ef7d; }
+        .popup-coin { color: #ffd700; }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-70px) scale(1.4); opacity: 0; }
+        }
+
+        /* SVG Touch Controls */
         .touch-controls {
             position: absolute;
             bottom: 24px;
@@ -138,25 +196,17 @@
             background: #00f2fe;
             border-color: #00f2fe;
         }
-        .ctrl-btn:active svg {
-            fill: #050b14;
-        }
+        .ctrl-btn:active svg { fill: #050b14; }
 
-        .ctrl-jump {
-            border-color: rgba(56, 239, 125, 0.6);
-        }
-        .ctrl-jump svg {
-            fill: #38ef7d;
-        }
+        .ctrl-jump { border-color: rgba(56, 239, 125, 0.6); }
+        .ctrl-jump svg { fill: #38ef7d; }
         .ctrl-jump:active {
             background: #38ef7d;
             border-color: #38ef7d;
         }
-        .ctrl-jump:active svg {
-            fill: #050b14;
-        }
+        .ctrl-jump:active svg { fill: #050b14; }
 
-        /* Overlay & Modals */
+        /* Full Screen Modals / Overlays */
         .overlay {
             position: absolute;
             top: 0;
@@ -230,24 +280,35 @@
 <body>
 
     <div id="canvas-container"></div>
+    <div class="score-popups" id="score-popups"></div>
 
-    <!-- HUD Elements -->
+    <!-- Top Bar HUD -->
     <div class="top-bar">
-        <div class="top-left">
-            <button type="button" class="hud-btn" id="btn-back">◀ Back</button>
-            <button type="button" class="hud-btn" id="btn-pause">Pause</button>
+        <!-- Vertically Stacked SVG Icons: Back & Pause -->
+        <div class="vertical-icon-group">
+            <button type="button" class="icon-btn" id="btn-back" aria-label="Back">
+                <!-- Back Icon -->
+                <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            </button>
+            <button type="button" class="icon-btn" id="btn-pause" aria-label="Pause">
+                <!-- Pause Icon -->
+                <svg viewBox="0 0 24 24" id="pause-svg"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
         </div>
 
+        <!-- High Score in Center -->
         <div class="top-center">
             <div class="hud-high-score">HIGH SCORE: <span id="ui-high-score">0</span></div>
         </div>
 
+        <!-- Current Score & Coins on Right -->
         <div class="top-right">
             <div class="hud-stat">SCORE: <span id="ui-score">0</span></div>
+            <div class="hud-coins">🪙 <span id="ui-coins">0</span></div>
         </div>
     </div>
 
-    <!-- Image / SVG Touch Controls -->
+    <!-- On-screen Bottom SVG Touch Controls -->
     <div class="touch-controls" id="touch-controls-panel" style="display: none;">
         <button type="button" class="ctrl-btn" id="ctrl-left" aria-label="Left">
             <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
@@ -260,11 +321,13 @@
         </button>
     </div>
 
-    <!-- Lobby / Start Overlay -->
+    <!-- Start / Lobby Overlay -->
     <div class="overlay" id="lobby-overlay">
         <div class="modal">
             <h2>Subway Runner</h2>
-            <p style="font-size: 13px; color: #94a3b8;">Dodge incoming barriers and beat your record.</p>
+            <p style="font-size: 13px; color: #94a3b8;">
+                Dodge barriers, jump over obstacles for <b>+20</b>, and collect coins for <b>+5</b>!
+            </p>
             <div class="high-score-note">Best Record: <span id="lobby-high-score">0</span></div>
             <button type="button" class="action-btn" id="btn-start-run">Start Run</button>
             <button type="button" class="action-btn secondary-btn" id="btn-lobby-back">Back to Catalog</button>
@@ -281,13 +344,13 @@
         </div>
     </div>
 
-    <!-- Crash / Game Over Overlay -->
+    <!-- Game Over Overlay -->
     <div class="overlay" id="death-overlay" style="display: none;">
         <div class="modal">
             <h2 style="color: #ff416c;">CRASHED!</h2>
-            <div style="font-size: 13px; color: #94a3b8;">SCORE</div>
+            <div style="font-size: 13px; color: #94a3b8;">FINAL SCORE</div>
             <div class="score-highlight" id="final-score">0</div>
-            <div class="high-score-note" id="death-high-score-wrap">High Score: <span id="death-high-score">0</span></div>
+            <div class="high-score-note">High Score: <span id="death-high-score">0</span></div>
             <button type="button" class="action-btn" id="btn-death-restart">Run Again</button>
             <button type="button" class="action-btn secondary-btn" id="btn-death-quit">Quit to Catalog</button>
         </div>
@@ -301,16 +364,18 @@
         const lanes = [-3, 0, 3];
         let currentLane = 1;
         let isJumping = false, jumpVelocity = 0;
-        
-        let score = 0;
+
+        let distanceScore = 0;
+        let bonusScore = 0;
+        let coinsCollected = 0;
+
         const BASE_SPEED = 0.42;
         let speed = BASE_SPEED;
-        let obstacles = [], tracks = [];
+        let obstacles = [], coins = [], tracks = [];
         let gameRunning = false;
         let isPaused = false;
         let engineInitialized = false;
 
-        // Persistent Personal High Score
         let highScore = parseInt(localStorage.getItem('playio_subway_highscore') || '0', 10);
 
         function updateHighScoreDisplay() {
@@ -340,13 +405,14 @@
             dirLight.position.set(5, 10, 7);
             scene.add(ambient, dirLight);
 
-            // Player mesh
+            // Player Mesh
             const geom = new THREE.BoxGeometry(1.1, 1.8, 1.1);
             const mat = new THREE.MeshStandardMaterial({ color: 0x38ef7d, roughness: 0.25 });
             player = new THREE.Mesh(geom, mat);
             player.position.set(lanes[currentLane], 0.9, 0);
             scene.add(player);
 
+            // Track pieces
             for (let i = 0; i < 16; i++) {
                 createTrackSlice(-i * 10);
             }
@@ -367,16 +433,51 @@
 
         function spawnObstacle(zPos) {
             const laneIdx = Math.floor(Math.random() * 3);
-            const geom = new THREE.BoxGeometry(1.6, 1.4, 1.2);
+            const geom = new THREE.BoxGeometry(1.6, 1.3, 1.2);
             const mat = new THREE.MeshStandardMaterial({ color: 0xff416c });
             const obs = new THREE.Mesh(geom, mat);
-            obs.position.set(lanes[laneIdx], 0.7, zPos);
+            obs.position.set(lanes[laneIdx], 0.65, zPos);
             scene.add(obs);
-            obstacles.push({ mesh: obs, lane: laneIdx });
+            obstacles.push({ mesh: obs, lane: laneIdx, cleared: false });
+
+            // Spawn coins in alternate lanes
+            if (Math.random() < 0.6) {
+                let coinLane = (laneIdx + (Math.random() < 0.5 ? 1 : 2)) % 3;
+                spawnCoin(coinLane, zPos);
+            }
+        }
+
+        function spawnCoin(laneIdx, zPos) {
+            const geom = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 16);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+            const coinMesh = new THREE.Mesh(geom, mat);
+            coinMesh.rotation.x = Math.PI / 2;
+            coinMesh.position.set(lanes[laneIdx], 0.8, zPos);
+            scene.add(coinMesh);
+            coins.push({ mesh: coinMesh, lane: laneIdx });
         }
 
         /* -------------------------------------------------------------
-           2. CONTROLS
+           2. VISUAL SCORE SHOWER FEEDBACK
+        ------------------------------------------------------------- */
+        function triggerScoreShower(text, type) {
+            const container = document.getElementById('score-popups');
+            const popup = document.createElement('div');
+            popup.className = `popup-float ${type === 'jump' ? 'popup-jump' : 'popup-coin'}`;
+            popup.innerText = text;
+
+            // Center of screen near the player
+            popup.style.left = `${window.innerWidth / 2 - 20 + (Math.random() * 40 - 20)}px`;
+            popup.style.top = `${window.innerHeight / 2 + (Math.random() * 30 - 15)}px`;
+
+            container.appendChild(popup);
+            setTimeout(() => {
+                if (popup.parentElement) popup.parentElement.removeChild(popup);
+            }, 800);
+        }
+
+        /* -------------------------------------------------------------
+           3. CONTROLS
         ------------------------------------------------------------- */
         function moveLeft() {
             if (!gameRunning || isPaused) return;
@@ -392,7 +493,7 @@
             if (!gameRunning || isPaused) return;
             if (!isJumping) {
                 isJumping = true;
-                jumpVelocity = 0.33;
+                jumpVelocity = 0.35;
             }
         }
 
@@ -407,13 +508,13 @@
         }
 
         /* -------------------------------------------------------------
-           3. GAME LOOP & SPEED PROGRESSION
+           4. RUNTIME LOOP & COLLISION LOGIC
         ------------------------------------------------------------- */
         function gameLoop() {
             if (!gameRunning || isPaused) return;
             requestAnimationFrame(gameLoop);
 
-            // Interpolate lane movement
+            // Interpolate lane position
             player.position.x += (lanes[currentLane] - player.position.x) * 0.25;
 
             // Jump handling
@@ -437,15 +538,23 @@
                 spawnObstacle(-130);
             }
 
-            // Update obstacles & check collisions
+            // Manage Obstacles & Jump Clearance (+20)
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obs = obstacles[i];
                 obs.mesh.position.z += speed;
 
-                if (Math.abs(obs.mesh.position.z - player.position.z) < 1.0 && obs.lane === currentLane) {
+                const zDist = Math.abs(obs.mesh.position.z - player.position.z);
+
+                // Collision detection
+                if (zDist < 1.0 && obs.lane === currentLane) {
                     if (player.position.y < 1.4) {
                         endGame();
                         return;
+                    } else if (!obs.cleared) {
+                        // Successfully jumped directly over obstacle
+                        obs.cleared = true;
+                        bonusScore += 20;
+                        triggerScoreShower('+20 JUMP!', 'jump');
                     }
                 }
 
@@ -455,13 +564,39 @@
                 }
             }
 
-            score += 1;
-            const currentScoreNum = Math.floor(score / 5);
-            document.getElementById('ui-score').innerText = currentScoreNum;
+            // Manage Coins (+5)
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const c = coins[i];
+                c.mesh.position.z += speed;
+                c.mesh.rotation.z += 0.05;
 
-            // Step speed up by 0.04 every +100 score points
-            const speedMultiplierTier = Math.floor(currentScoreNum / 100);
-            speed = BASE_SPEED + (speedMultiplierTier * 0.04);
+                const zDist = Math.abs(c.mesh.position.z - player.position.z);
+
+                if (zDist < 1.1 && c.lane === currentLane) {
+                    coinsCollected++;
+                    bonusScore += 5;
+                    document.getElementById('ui-coins').innerText = coinsCollected;
+                    triggerScoreShower('+5 COIN', 'coin');
+
+                    scene.remove(c.mesh);
+                    coins.splice(i, 1);
+                    continue;
+                }
+
+                if (c.mesh.position.z > 10) {
+                    scene.remove(c.mesh);
+                    coins.splice(i, 1);
+                }
+            }
+
+            // Dynamic Total Score
+            distanceScore += 1;
+            const currentTotal = Math.floor(distanceScore / 5) + bonusScore;
+            document.getElementById('ui-score').innerText = currentTotal;
+
+            // Speed Scaling: Step up by 0.04 every +100 total score points
+            const speedTier = Math.floor(currentTotal / 100);
+            speed = BASE_SPEED + (speedTier * 0.04);
 
             renderer.render(scene, camera);
         }
@@ -477,7 +612,6 @@
             if (!gameRunning) return;
             isPaused = !isPaused;
             document.getElementById('pause-overlay').style.display = isPaused ? 'flex' : 'none';
-            document.getElementById('btn-pause').innerText = isPaused ? 'Resume' : 'Pause';
             if (!isPaused) requestAnimationFrame(gameLoop);
         }
 
@@ -497,16 +631,23 @@
             document.getElementById('pause-overlay').style.display = 'none';
             document.getElementById('touch-controls-panel').style.display = 'flex';
 
-            score = 0;
+            distanceScore = 0;
+            bonusScore = 0;
+            coinsCollected = 0;
             speed = BASE_SPEED;
             currentLane = 1;
             isJumping = false;
             isPaused = false;
-            document.getElementById('btn-pause').innerText = 'Pause';
+
+            document.getElementById('ui-coins').innerText = '0';
+            document.getElementById('ui-score').innerText = '0';
             player.position.set(lanes[1], 0.9, 0);
 
+            // Clear active entities
             for (let obs of obstacles) scene.remove(obs.mesh);
+            for (let c of coins) scene.remove(c.mesh);
             obstacles = [];
+            coins = [];
 
             gameRunning = true;
             requestAnimationFrame(gameLoop);
@@ -516,7 +657,7 @@
             gameRunning = false;
             document.getElementById('touch-controls-panel').style.display = 'none';
 
-            const final = Math.floor(score / 5);
+            const final = Math.floor(distanceScore / 5) + bonusScore;
             document.getElementById('final-score').innerText = final;
 
             if (final > highScore) {
@@ -533,7 +674,7 @@
         }
 
         /* -------------------------------------------------------------
-           4. CLEAN EVENT BINDINGS
+           5. EVENT LISTENERS
         ------------------------------------------------------------- */
         function bind(id, action) {
             const el = document.getElementById(id);
@@ -552,11 +693,11 @@
             bind('ctrl-right', moveRight);
             bind('ctrl-jump', doJump);
 
-            // HUD
+            // Icon HUD Buttons
             bind('btn-back', exitToCatalog);
             bind('btn-pause', togglePause);
 
-            // Lobby
+            // Lobby Buttons
             bind('btn-start-run', startGame);
             bind('btn-lobby-back', exitToCatalog);
 
