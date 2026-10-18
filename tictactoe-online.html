@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online 2P Tic-Tac-Toe - Play.io</title>
+  <!-- PeerJS library for WebRTC peer-to-peer data connection -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+    .top-bar { width: 100%; max-width: 360px; margin-bottom: 20px; }
+    .top-bar a { color: #58a6ff; text-decoration: none; font-weight: 600; }
+    .lobby-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; width: 100%; max-width: 360px; text-align: center; margin-bottom: 20px; }
+    .lobby-box h2 { font-size: 1.3rem; margin-bottom: 12px; color: #58a6ff; }
+    .input-group { display: flex; gap: 8px; margin-top: 12px; }
+    input { flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: #fff; outline: none; }
+    .btn { padding: 8px 16px; background: #238636; border: none; border-radius: 6px; color: #fff; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: #2ea043; }
+    .room-id { background: #21262d; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 1.1rem; color: #7ee787; margin: 10px 0; user-select: all; }
+    .status { font-size: 1.1rem; margin-bottom: 16px; font-weight: bold; color: #58a6ff; text-align: center; }
+    .board { display: none; grid-template-columns: repeat(3, 90px); grid-template-rows: repeat(3, 90px); gap: 8px; }
+    .cell { background: #161b22; border: 2px solid #30363d; border-radius: 8px; font-size: 2.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+    .cell.x { color: #58a6ff; }
+    .cell.o { color: #f85149; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="games.html">&larr; Back to Games</a>
+  </div>
+
+  <div class="lobby-box" id="lobby">
+    <h2>Online Multiplayer</h2>
+    <p style="color: #8b949e; font-size: 0.9rem;">Host a game and share your code, or join a friend's room.</p>
+    
+    <button class="btn" style="width: 100%; margin-top: 14px;" onclick="hostGame()">Host New Game</button>
+    <div id="hostInfo" style="display: none; margin-top: 14px;">
+      <p style="color: #8b949e; font-size: 0.85rem;">Share this Room Code with Player 2:</p>
+      <div class="room-id" id="roomCodeDisplay">Generating...</div>
+      <p style="color: #8b949e; font-size: 0.8rem;">Waiting for Player 2 to connect...</p>
+    </div>
+
+    <div style="margin: 18px 0; border-top: 1px solid #30363d;"></div>
+
+    <div class="input-group">
+      <input type="text" id="joinInput" placeholder="Enter Room Code" />
+      <button class="btn" onclick="joinGame()">Join</button>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div class="board" id="board">
+    <div class="cell" onclick="cellClicked(0)"></div>
+    <div class="cell" onclick="cellClicked(1)"></div>
+    <div class="cell" onclick="cellClicked(2)"></div>
+    <div class="cell" onclick="cellClicked(3)"></div>
+    <div class="cell" onclick="cellClicked(4)"></div>
+    <div class="cell" onclick="cellClicked(5)"></div>
+    <div class="cell" onclick="cellClicked(6)"></div>
+    <div class="cell" onclick="cellClicked(7)"></div>
+    <div class="cell" onclick="cellClicked(8)"></div>
+  </div>
+
+  <script>
+    let peer = null;
+    let conn = null;
+    let mySymbol = ""; // "X" or "O"
+    let currentTurn = "X";
+    let boardState = ["", "", "", "", "", "", "", "", ""];
+    let gameOver = false;
+
+    const winCombos = [
+      [0,1,2], [3,4,5], [6,7,8],
+      [0,3,6], [1,4,7], [2,5,8],
+      [0,4,8], [2,4,6]
+    ];
+
+    function hostGame() {
+      // Generate random 5-character room code
+      const shortCode = "PLAY-" + Math.floor(1000 + Math.random() * 9000);
+      peer = new Peer(shortCode);
+
+      peer.on('open', (id) => {
+        document.getElementById("hostInfo").style.display = "block";
+        document.getElementById("roomCodeDisplay").innerText = id;
+      });
+
+      peer.on('connection', (c) => {
+        conn = c;
+        mySymbol = "X";
+        setupConnection();
+      });
+    }
+
+    function joinGame() {
+      const code = document.getElementById("joinInput").value.trim();
+      if (!code) return alert("Please enter a room code!");
+      
+      peer = new Peer();
+      peer.on('open', () => {
+        conn = peer.connect(code);
+        mySymbol = "O";
+        setupConnection();
+      });
+    }
+
+    function setupConnection() {
+      conn.on('open', () => {
+        document.getElementById("lobby").style.display = "none";
+        document.getElementById("board").style.display = "grid";
+        updateStatus();
+      });
+
+      conn.on('data', (data) => {
+        if (data.type === 'move') {
+          applyMove(data.index, data.symbol);
+        }
+      });
+    }
+
+    function cellClicked(index) {
+      if (gameOver || boardState[index] !== "" || currentTurn !== mySymbol) return;
+
+      applyMove(index, mySymbol);
+      conn.send({ type: 'move', index: index, symbol: mySymbol });
+    }
+
+    function applyMove(index, symbol) {
+      boardState[index] = symbol;
+      const cell = document.getElementsByClassName("cell")[index];
+      cell.innerText = symbol;
+      cell.classList.add(symbol.toLowerCase());
+
+      if (checkWin()) {
+        gameOver = true;
+        document.getElementById("status").innerText = (currentTurn === mySymbol) ? "🎉 You Won!" : "Game Over! Opponent Won!";
+        return;
+      }
+
+      if (!boardState.includes("")) {
+        gameOver = true;
+        document.getElementById("status").innerText = "Match Drawn!";
+        return;
+      }
+
+      currentTurn = (currentTurn === "X") ? "O" : "X";
+      updateStatus();
+    }
+
+    function updateStatus() {
+      if (currentTurn === mySymbol) {
+        document.getElementById("status").innerText = `Your Turn (${mySymbol})`;
+      } else {
+        document.getElementById("status").innerText = `Opponent's Turn (${currentTurn})`;
+      }
+    }
+
+    function checkWin() {
+      return winCombos.some(combo => {
+        return boardState[combo[0]] && 
+               boardState[combo[0]] === boardState[combo[1]] && 
+               boardState[combo[0]] === boardState[combo[2]];
+      });
+    }
+  </script>
+</body>
+</html>
