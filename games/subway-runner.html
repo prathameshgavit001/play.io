@@ -6,7 +6,7 @@
       "id": "subway-runner",
       "title": "Subway Runner: Neon Dash",
       "category": "Action / Endless Runner",
-      "description": "Solo 3D runner with rolling neon sphere avatar, 4 difficulty modes, tall unjumpable barriers, coin collection, and vertical icon HUD.",
+      "description": "Solo 3D runner with swipe controls (swipe up to jump, swipe left/right to change lanes), native fullscreen toggle, rolling sphere avatar, and progressive difficulty modes.",
       "thumbnail": "assets/thumbnails/subway-runner.png",
       "orientation": "landscape",
       "multiplayer": false
@@ -33,7 +33,7 @@
             overflow: hidden;
             background: #080a14;
             color: #fff;
-            touch-action: manipulation;
+            touch-action: none; /* Prevents browser pull-to-refresh & pinch zoom during swipes */
         }
 
         #canvas-container {
@@ -43,7 +43,6 @@
             top: 0;
             left: 0;
             z-index: 1;
-            pointer-events: none;
         }
 
         /* Top HUD */
@@ -171,53 +170,6 @@
             100% { transform: translateY(-70px) scale(1.35); opacity: 0; }
         }
 
-        /* SVG Touch Controls */
-        .touch-controls {
-            position: absolute;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 24px;
-            z-index: 60;
-            pointer-events: auto;
-        }
-        .ctrl-btn {
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            border: 2px solid rgba(0, 242, 254, 0.5);
-            background: rgba(15, 17, 26, 0.8);
-            backdrop-filter: blur(8px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            outline: none;
-            touch-action: manipulation;
-        }
-        .ctrl-btn svg {
-            width: 32px;
-            height: 32px;
-            fill: #00f2fe;
-            pointer-events: none;
-        }
-        .ctrl-btn:active {
-            transform: scale(0.92);
-            background: #00f2fe;
-            border-color: #00f2fe;
-        }
-        .ctrl-btn:active svg { fill: #050b14; }
-
-        .ctrl-jump { border-color: rgba(56, 239, 125, 0.6); }
-        .ctrl-jump svg { fill: #38ef7d; }
-        .ctrl-jump:active {
-            background: #38ef7d;
-            border-color: #38ef7d;
-        }
-        .ctrl-jump:active svg { fill: #050b14; }
-
         /* Full Screen Modals */
         .overlay {
             position: absolute;
@@ -316,8 +268,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-
-    <div id="canvas-container"></div>
+     <div id="canvas-container"></div>
     <div class="score-popups" id="score-popups"></div>
 
     <!-- Top Bar HUD -->
@@ -328,6 +279,10 @@
             </button>
             <button type="button" class="icon-btn" id="btn-pause" aria-label="Pause">
                 <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button type="button" class="icon-btn" id="btn-fullscreen" aria-label="Fullscreen">
+                <!-- Expand / Fullscreen Icon -->
+                <svg viewBox="0 0 24 24" id="fs-icon"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
         </div>
 
@@ -342,25 +297,14 @@
         </div>
     </div>
 
-    <!-- On-screen Bottom SVG Controls -->
-    <div class="touch-controls" id="touch-controls-panel" style="display: none;">
-        <button type="button" class="ctrl-btn" id="ctrl-left" aria-label="Left">
-            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-        </button>
-        <button type="button" class="ctrl-btn ctrl-jump" id="ctrl-jump" aria-label="Jump">
-            <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
-        </button>
-        <button type="button" class="ctrl-btn" id="ctrl-right" aria-label="Right">
-            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-        </button>
-    </div>
-
-    <!-- Lobby / Start Overlay -->
+    <!-- Start / Lobby Overlay -->
     <div class="overlay" id="lobby-overlay">
         <div class="modal">
             <h2>Subway Runner</h2>
             <p style="font-size: 13px; color: #94a3b8;">
-                Jump over low hurdles for <b>+20</b>! Beware of <b>tall barriers</b>—you cannot jump them!
+                Swipe <b>Left / Right</b> to dodge lanes.<br>
+                Swipe <b>Up</b> to jump over low hurdles (+20)!<br>
+                (Cannot jump tall monoliths).
             </p>
 
             <div class="diff-title">Choose Difficulty</div>
@@ -420,7 +364,7 @@
         let coinsCollected = 0;
         let speed = 0.44;
 
-        let obstacles = [], coins = [], tracks = [], particles = [];
+        let obstacles = [], coins = [], tracks = [];
         let gameRunning = false;
         let isPaused = false;
         let engineInitialized = false;
@@ -433,7 +377,7 @@
         }
 
         /* -------------------------------------------------------------
-           2. 3D SCENE & SPHERE RUNNER
+           2. 3D SCENE & ENGINE
         ------------------------------------------------------------- */
         function initScene() {
             if (typeof THREE === 'undefined') return;
@@ -459,7 +403,6 @@
             // Sphere / Orb Runner with Orbiting Rings
             playerGroup = new THREE.Group();
 
-            // Core Neon Sphere
             const sphereGeom = new THREE.SphereGeometry(0.75, 32, 32);
             const sphereMat = new THREE.MeshStandardMaterial({
                 color: 0x00f2fe,
@@ -470,13 +413,11 @@
             sphereMesh = new THREE.Mesh(sphereGeom, sphereMat);
             playerGroup.add(sphereMesh);
 
-            // Orbiting Ring 1
             const ringGeom1 = new THREE.TorusGeometry(1.05, 0.05, 8, 32);
             const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x38ef7d });
             orbitalRing1 = new THREE.Mesh(ringGeom1, ringMat1);
             playerGroup.add(orbitalRing1);
 
-            // Orbiting Ring 2
             const ringGeom2 = new THREE.TorusGeometry(1.15, 0.04, 8, 32);
             const ringMat2 = new THREE.MeshBasicMaterial({ color: 0xff007f });
             orbitalRing2 = new THREE.Mesh(ringGeom2, ringMat2);
@@ -486,13 +427,14 @@
             playerGroup.position.set(lanes[currentLane], 0.75, 0);
             scene.add(playerGroup);
 
-            // Road / Track Slices
+            // Road Slices
             for (let i = 0; i < 16; i++) {
                 createTrackSlice(-i * 10);
             }
 
             window.addEventListener('resize', onWindowResize);
             document.addEventListener('keydown', handleKeyInput);
+            initSwipeControls();
             engineInitialized = true;
         }
 
@@ -502,7 +444,6 @@
             const track = new THREE.Mesh(geom, mat);
             track.position.set(0, -0.1, zPos);
 
-            // Subtle neon lane divider lines
             const lineGeom = new THREE.BoxGeometry(0.1, 0.22, 10);
             const lineMat = new THREE.MeshBasicMaterial({ color: 0x1f2945 });
             const leftLine = new THREE.Mesh(lineGeom, lineMat);
@@ -516,7 +457,7 @@
         }
 
         /* -------------------------------------------------------------
-           3. OBSTACLES: LOW HURDLES, TALL WALLS, CONES
+           3. OBSTACLES & COINS
         ------------------------------------------------------------- */
         function spawnObstacle(zPos) {
             const laneIdx = Math.floor(Math.random() * 3);
@@ -524,11 +465,10 @@
             const isTall = Math.random() < cfg.tallChance;
 
             let obsMesh;
-            let type = "hurdle"; // hurdle, tall, cone
+            let type = "hurdle";
             let height = 1.1;
 
             if (isTall) {
-                // TALL UNJUMPABLE MONOLITH (Height 3.6m)
                 type = "tall";
                 height = 3.6;
                 const geom = new THREE.BoxGeometry(1.8, height, 1.2);
@@ -540,7 +480,6 @@
                 obsMesh = new THREE.Mesh(geom, mat);
                 obsMesh.position.set(lanes[laneIdx], height / 2, zPos);
             } else if (Math.random() < 0.5) {
-                // LOW LASER HURDLE (Jumpable for +20)
                 type = "hurdle";
                 height = 0.95;
                 const geom = new THREE.BoxGeometry(1.9, height, 0.8);
@@ -552,7 +491,6 @@
                 obsMesh = new THREE.Mesh(geom, mat);
                 obsMesh.position.set(lanes[laneIdx], height / 2, zPos);
             } else {
-                // SPIKE CONE (Narrower Jump Window)
                 type = "cone";
                 height = 1.25;
                 const geom = new THREE.ConeGeometry(0.9, height, 16);
@@ -574,7 +512,6 @@
                 cleared: false
             });
 
-            // Coin Generation in free lanes
             if (Math.random() < 0.65) {
                 let coinLane = (laneIdx + (Math.random() < 0.5 ? 1 : 2)) % 3;
                 spawnCoin(coinLane, zPos);
@@ -609,9 +546,8 @@
                 if (popup.parentElement) popup.parentElement.removeChild(popup);
             }, 800);
         }
-
-        /* -------------------------------------------------------------
-           4. CONTROLS & MOVEMENTS
+         /* -------------------------------------------------------------
+           4. CONTROLS (SWIPE ENGINE + KEYBOARD)
         ------------------------------------------------------------- */
         function moveLeft() {
             if (!gameRunning || isPaused) return;
@@ -627,7 +563,7 @@
             if (!gameRunning || isPaused) return;
             if (!isJumping) {
                 isJumping = true;
-                jumpVelocity = 0.36; // Sufficient for low hurdles & cones, impossible for tall walls
+                jumpVelocity = 0.36;
             }
         }
 
@@ -641,8 +577,87 @@
             else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') doJump();
         }
 
+        // Swipe Detection
+        function initSwipeControls() {
+            let startX = 0;
+            let startY = 0;
+            const threshold = 30; // Minimum distance in px to register a swipe
+
+            window.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 0) {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!gameRunning || isPaused) return;
+                if (e.changedTouches.length === 0) return;
+
+                const endX = e.changedTouches[0].clientX;
+                const endY = e.changedTouches[0].clientY;
+
+                const diffX = endX - startX;
+                const diffY = endY - startY;
+
+                // Determine whether swipe is primarily horizontal or vertical
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    // Horizontal swipe
+                    if (Math.abs(diffX) > threshold) {
+                        if (diffX > 0) moveRight();
+                        else moveLeft();
+                    }
+                } else {
+                    // Vertical swipe (Only jump on swipe UP)
+                    if (Math.abs(diffY) > threshold && diffY < 0) {
+                        doJump();
+                    }
+                }
+            }, { passive: true });
+        }
+
         /* -------------------------------------------------------------
-           5. GAME LOOP & ANIMATION
+           5. FULLSCREEN API HANDLER
+        ------------------------------------------------------------- */
+        function toggleFullscreen() {
+            const doc = document;
+            const docEl = document.documentElement;
+
+            const requestFs = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            const exitFs = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+            const isFs = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+
+            if (!isFs) {
+                if (requestFs) {
+                    requestFs.call(docEl).catch(() => {});
+                }
+            } else {
+                if (exitFs) {
+                    exitFs.call(doc);
+                }
+            }
+        }
+
+        function updateFullscreenIcon() {
+            const isFs = document.fullscreenElement || document.webkitFullscreenElement;
+            const iconSvg = document.getElementById('fs-icon');
+            if (!iconSvg) return;
+
+            if (isFs) {
+                // Compress / Exit Fullscreen SVG Icon
+                iconSvg.innerHTML = `<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>`;
+            } else {
+                // Expand / Enter Fullscreen SVG Icon
+                iconSvg.innerHTML = `<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>`;
+            }
+            onWindowResize();
+        }
+
+        document.addEventListener('fullscreenchange', updateFullscreenIcon);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+
+        /* -------------------------------------------------------------
+           6. GAME LOOP & ANIMATION
         ------------------------------------------------------------- */
         function gameLoop() {
             if (!gameRunning || isPaused) return;
@@ -651,7 +666,7 @@
             // Interpolate lane position
             playerGroup.position.x += (lanes[currentLane] - playerGroup.position.x) * 0.25;
 
-            // Rolling Sphere + Orbital Rings Rotation
+            // Rolling Sphere + Rings
             sphereMesh.rotation.x -= speed * 0.5;
             orbitalRing1.rotation.y += 0.05;
             orbitalRing1.rotation.x += 0.03;
@@ -674,7 +689,7 @@
                 if (t.position.z > 10) t.position.z -= 160;
             }
 
-            // Spawn Obstacles Based on Difficulty
+            // Spawn Obstacles
             const cfg = DIFFICULTY_SETTINGS[currentDifficulty];
             if (Math.random() < cfg.spawnRate && (obstacles.length === 0 || obstacles[obstacles.length - 1].mesh.position.z > -95)) {
                 spawnObstacle(-130);
@@ -688,14 +703,12 @@
                 const zDist = Math.abs(obs.mesh.position.z - playerGroup.position.z);
 
                 if (zDist < 1.1 && obs.lane === currentLane) {
-                    // Check if player's sphere clears the top boundary
                     const playerBottom = playerGroup.position.y - 0.6;
 
                     if (playerBottom < obs.height) {
                         endGame();
                         return;
                     } else if (!obs.cleared) {
-                        // Jump clearance bonus for jumpable hurdles & cones
                         obs.cleared = true;
                         bonusScore += 20;
                         triggerScoreShower('+20 JUMP!', 'jump');
@@ -780,7 +793,6 @@
             document.getElementById('lobby-overlay').style.display = 'none';
             document.getElementById('death-overlay').style.display = 'none';
             document.getElementById('pause-overlay').style.display = 'none';
-            document.getElementById('touch-controls-panel').style.display = 'flex';
 
             distanceScore = 0;
             bonusScore = 0;
@@ -805,7 +817,6 @@
 
         function endGame() {
             gameRunning = false;
-            document.getElementById('touch-controls-panel').style.display = 'none';
 
             const final = Math.floor(distanceScore / 5) + bonusScore;
             document.getElementById('final-score').innerText = final;
@@ -823,8 +834,8 @@
             startGame();
         }
 
-        /* -------------------------------------------------------------
-           6. EVENT BINDINGS
+           /* -------------------------------------------------------------
+           7. EVENT BINDINGS
         ------------------------------------------------------------- */
         function bind(id, action) {
             const el = document.getElementById(id);
@@ -838,14 +849,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateHighScoreDisplay();
 
-            // Touch Controls
-            bind('ctrl-left', moveLeft);
-            bind('ctrl-right', moveRight);
-            bind('ctrl-jump', doJump);
-
             // Icon HUD
             bind('btn-back', exitToCatalog);
             bind('btn-pause', togglePause);
+            bind('btn-fullscreen', toggleFullscreen);
 
             // Lobby & Difficulty
             bind('btn-start-run', startGame);
