@@ -17,16 +17,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Subway Runner: Neon Dash | Playio</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0d17; color: #fff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0b0d17; color: #fff; touch-action: manipulation; }
         
-        /* Three.js Canvas container - isolated background */
         #canvas-container {
             width: 100%; height: 100%; position: absolute;
             top: 0; left: 0; z-index: 1; pointer-events: none;
         }
 
-        /* Top Bar Navigation & Stats */
+        /* Top HUD */
         .top-bar {
             position: absolute; top: 16px; left: 16px; right: 16px;
             z-index: 50; display: flex; justify-content: space-between;
@@ -40,8 +39,7 @@
         .hud-btn {
             background: rgba(24, 29, 48, 0.85); border: 1px solid #33416b;
             color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px;
-            font-weight: 700; cursor: pointer; transition: 0.15s ease; backdrop-filter: blur(4px);
-            pointer-events: auto;
+            font-weight: 700; cursor: pointer; backdrop-filter: blur(4px);
         }
         .hud-btn:active { background: #00f2fe; color: #0b0d17; }
 
@@ -50,7 +48,7 @@
             border: 1px solid #38ef7d; font-size: 12px; font-weight: 700;
         }
 
-        /* On-Screen Touch / Click Controls */
+        /* Touch / Mobile Controls */
         .touch-controls {
             position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 20px; z-index: 60; pointer-events: auto;
@@ -70,19 +68,17 @@
         .ctrl-jump { border-color: rgba(56, 239, 125, 0.6); }
         .ctrl-jump:active { background: #38ef7d; color: #050b14; }
 
-        /* Full Screen Modals / Overlays */
+        /* Dialogs and Modals */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 12, 22, 0.92); backdrop-filter: blur(8px);
+            background: rgba(10, 12, 22, 0.94); backdrop-filter: blur(8px);
             z-index: 100; display: flex; justify-content: center; align-items: center;
-            pointer-events: auto;
         }
         .modal {
             background: #181d30; padding: 28px; border-radius: 14px;
             width: 380px; max-width: 90%; border: 1px solid #2d3758;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8); display: flex;
             flex-direction: column; gap: 14px; text-align: center;
-            position: relative; z-index: 110;
         }
         .modal h2 { font-size: 24px; font-weight: 900; color: #00f2fe; }
         .score-highlight {
@@ -92,15 +88,15 @@
         .modal input {
             background: #0d101d; border: 1px solid #33416b; color: #fff;
             padding: 12px 14px; border-radius: 8px; font-size: 14px; width: 100%;
-            outline: none; pointer-events: auto;
+            outline: none;
         }
         .modal input:focus { border-color: #00f2fe; }
         .btn-group { display: flex; gap: 10px; }
         button.action-btn {
             flex: 1; padding: 12px; border: none; border-radius: 8px;
             background: linear-gradient(135deg, #00f2fe, #4facfe); color: #050b14;
-            font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.15s ease;
-            pointer-events: auto;
+            font-weight: 800; font-size: 14px; cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
         button.action-btn:active { transform: scale(0.98); opacity: 0.9; }
         button.secondary-btn {
@@ -108,13 +104,12 @@
         }
         button.secondary-btn:active { background: #323d66; }
 
-        /* Scoreboard Panel */
+        /* Scoreboard */
         #scoreboard-panel {
             position: absolute; bottom: 110px; right: 20px; z-index: 70;
             background: rgba(16, 20, 35, 0.92); border: 1px solid #33416b;
             border-radius: 10px; padding: 14px 18px; width: 280px; max-height: 280px;
             overflow-y: auto; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-            pointer-events: auto;
         }
         #scoreboard-panel h3 {
             font-size: 13px; color: #00f2fe; margin-bottom: 10px;
@@ -126,16 +121,14 @@
         }
         .score-entry.self { color: #38ef7d; font-weight: 800; }
     </style>
-    <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- PeerJS CDN -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
     <div id="canvas-container"></div>
 
-    <!-- Top Bar Controls & Stats -->
+    <!-- HUD -->
     <div class="top-bar">
         <div class="top-group">
             <button class="hud-btn" id="btn-back">◀ Back</button>
@@ -151,14 +144,14 @@
         </div>
     </div>
 
-    <!-- On-screen directional & jump controls -->
+    <!-- Gameplay Touch Controls -->
     <div class="touch-controls" id="touch-controls-panel" style="display: none;">
         <div class="ctrl-btn" id="ctrl-left">◀</div>
         <div class="ctrl-btn ctrl-jump" id="ctrl-jump">▲</div>
         <div class="ctrl-btn" id="ctrl-right">▶</div>
     </div>
 
-    <!-- Live In-Game Room Scoreboard -->
+    <!-- Live In-Game Leaderboard -->
     <div id="scoreboard-panel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <h3>Room Leaderboard</h3>
@@ -167,7 +160,7 @@
         <div id="leaderboard-list"></div>
     </div>
 
-    <!-- Lobby / Room Configuration Overlay -->
+    <!-- Lobby / Room Overlay -->
     <div class="overlay" id="lobby-overlay">
         <div class="modal">
             <h2>Subway Runner</h2>
@@ -206,7 +199,7 @@
         </div>
     </div>
 
-    <!-- Game Over Overlay -->
+    <!-- Crash Overlay -->
     <div class="overlay" id="death-overlay" style="display: none;">
         <div class="modal">
             <h2 style="color: #ff416c;">CRASHED!</h2>
@@ -220,7 +213,7 @@
 
     <script>
         /* -------------------------------------------------------------
-           1. THREE.JS 3D ENGINE
+           1. CORE ENGINE & GAMEPLAY
         ------------------------------------------------------------- */
         let scene, camera, renderer, player;
         const lanes = [-3, 0, 3];
@@ -230,8 +223,14 @@
         let obstacles = [], tracks = [];
         let gameRunning = false;
         let isPaused = false;
+        let engineInitialized = false;
 
         function initScene() {
+            if (typeof THREE === 'undefined') {
+                console.error("Three.js not loaded.");
+                return;
+            }
+
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
             scene.fog = new THREE.FogExp2(0x0b0d17, 0.015);
@@ -250,21 +249,19 @@
             dirLight.position.set(5, 10, 7);
             scene.add(ambient, dirLight);
 
-            // Player mesh
             const geom = new THREE.BoxGeometry(1.1, 1.8, 1.1);
             const mat = new THREE.MeshStandardMaterial({ color: 0x38ef7d, roughness: 0.25 });
             player = new THREE.Mesh(geom, mat);
             player.position.set(lanes[currentLane], 0.9, 0);
             scene.add(player);
 
-            // Track pieces
             for (let i = 0; i < 16; i++) {
                 createTrackSlice(-i * 10);
             }
 
             window.addEventListener('resize', onWindowResize);
             document.addEventListener('keydown', handleKeyInput);
-            bindEvents();
+            engineInitialized = true;
         }
 
         function createTrackSlice(zPos) {
@@ -363,6 +360,7 @@
         }
 
         function onWindowResize() {
+            if (!camera || !renderer) return;
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -385,6 +383,8 @@
         }
 
         function startGame() {
+            if (!engineInitialized) initScene();
+
             document.getElementById('lobby-overlay').style.display = 'none';
             document.getElementById('death-overlay').style.display = 'none';
             document.getElementById('pause-overlay').style.display = 'none';
@@ -458,10 +458,15 @@
             roomPIN = document.getElementById('create-pin').value.trim();
             roomCode = Math.floor(100000 + Math.random() * 900000).toString();
 
+            if (typeof Peer === 'undefined') {
+                alert("Multiplayer service unavailable. Starting in solo mode.");
+                startSolo();
+                return;
+            }
+
             try {
                 peer = new Peer("playio-subway-" + roomCode);
             } catch (e) {
-                alert("PeerJS initialization error. Playing solo mode.");
                 startSolo();
                 return;
             }
@@ -474,4 +479,171 @@
                 startGame();
             });
 
-         
+            peer.on('error', () => {
+                alert("Room creation failed. Starting solo mode.");
+                startSolo();
+            });
+        }
+
+        function initJoinRoom() {
+            nickname = document.getElementById('player-nickname').value.trim() || "GuestRunner";
+            const targetCode = document.getElementById('join-room-id').value.trim();
+            const inputPIN = document.getElementById('join-pin').value.trim();
+
+            if (!targetCode) {
+                alert("Please enter a 6-digit room code.");
+                return;
+            }
+
+            if (typeof Peer === 'undefined') {
+                alert("Multiplayer service unavailable. Starting in solo mode.");
+                startSolo();
+                return;
+            }
+
+            try {
+                peer = new Peer();
+            } catch (e) {
+                startSolo();
+                return;
+            }
+
+            peer.on('open', () => {
+                const conn = peer.connect("playio-subway-" + targetCode);
+                conn.on('open', () => {
+                    conn.send({ type: 'HANDSHAKE', nickname: nickname, pin: inputPIN });
+                });
+
+                conn.on('data', (data) => {
+                    if (data.type === 'AUTH_FAILED') {
+                        alert(data.reason);
+                        peer.destroy();
+                    } else if (data.type === 'AUTH_SUCCESS') {
+                        setupRoomUI(targetCode, inputPIN || "None");
+                        connections.push(conn);
+                        startGame();
+                    } else if (data.type === 'SCOREBOARD_UPDATE') {
+                        scoreTable = data.table;
+                        renderScoreboard();
+                    }
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert("Room connection error: " + err.type);
+            });
+        }
+
+        function handleHostNetworkMessage(conn, data) {
+            if (data.type === 'HANDSHAKE') {
+                if (roomPIN && data.pin !== roomPIN) {
+                    conn.send({ type: 'AUTH_FAILED', reason: 'Invalid Room PIN' });
+                    conn.close();
+                    return;
+                }
+                connections.push(conn);
+                scoreTable[conn.peer] = { name: data.nickname, score: 0 };
+                conn.send({ type: 'AUTH_SUCCESS' });
+                broadcastScoreboard();
+                renderScoreboard();
+            } else if (data.type === 'SCORE_UPDATE') {
+                if (scoreTable[conn.peer]) {
+                    scoreTable[conn.peer].score = Math.max(scoreTable[conn.peer].score, data.score);
+                    broadcastScoreboard();
+                    renderScoreboard();
+                }
+            }
+        }
+
+        function broadcastScoreboard() {
+            if (!isHost) return;
+            const payload = { type: 'SCOREBOARD_UPDATE', table: scoreTable };
+            for (let c of connections) {
+                if (c.open) c.send(payload);
+            }
+        }
+
+        function syncScore(currentScore) {
+            if (!peer) {
+                if (scoreTable["local"]) {
+                    scoreTable["local"].score = Math.max(scoreTable["local"].score, currentScore);
+                    renderScoreboard();
+                }
+                return;
+            }
+            if (isHost) {
+                scoreTable[peer.id].score = Math.max(scoreTable[peer.id].score, currentScore);
+                broadcastScoreboard();
+                renderScoreboard();
+            } else if (connections.length > 0 && connections[0].open) {
+                connections[0].send({ type: 'SCORE_UPDATE', score: currentScore });
+            }
+        }
+
+        function renderScoreboard() {
+            const listEl = document.getElementById('leaderboard-list');
+            listEl.innerHTML = "";
+
+            const sorted = Object.entries(scoreTable).sort((a, b) => b[1].score - a[1].score);
+            sorted.forEach(([id, entry], index) => {
+                const row = document.createElement('div');
+                const isMe = (peer && id === peer.id) || id === "local";
+                row.className = 'score-entry' + (isMe ? ' self' : '');
+                row.innerHTML = `<span>#${index + 1} <b>${entry.name}</b></span><span><b>${entry.score}</b></span>`;
+                listEl.appendChild(row);
+            });
+        }
+
+        /* -------------------------------------------------------------
+           3. DIRECT EVENT BINDINGS (Native Standard Pointer/Click)
+        ------------------------------------------------------------- */
+        function bind(id, handler) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('click', handler);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Touch Controls
+            bind('ctrl-left', moveLeft);
+            bind('ctrl-right', moveRight);
+            bind('ctrl-jump', doJump);
+
+            // Top Bar
+            bind('btn-back', exitToCatalog);
+            bind('btn-pause', togglePause);
+            bind('btn-toggle-lb', toggleLeaderboard);
+            bind('btn-close-lb', toggleLeaderboard);
+
+            // Lobby Buttons
+            bind('btn-show-create', () => {
+                document.getElementById('create-fields').style.display = 'flex';
+                document.getElementById('join-fields').style.display = 'none';
+            });
+            bind('btn-show-join', () => {
+                document.getElementById('join-fields').style.display = 'flex';
+                document.getElementById('create-fields').style.display = 'none';
+            });
+            bind('btn-host-launch', initHostRoom);
+            bind('btn-join-launch', initJoinRoom);
+            bind('btn-play-solo', startSolo);
+            bind('btn-lobby-back', exitToCatalog);
+
+            // Pause Menu
+            bind('btn-resume', togglePause);
+            bind('btn-pause-lb', showLeaderboardModal);
+            bind('btn-pause-restart', restartGame);
+            bind('btn-pause-quit', exitToCatalog);
+
+            // Crash Menu
+            bind('btn-death-restart', restartGame);
+            bind('btn-death-lb', showLeaderboardModal);
+            bind('btn-death-quit', exitToCatalog);
+
+            // Init 3D Scene
+            initScene();
+        });
+    </script>
+</body>
+</html>
