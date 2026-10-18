@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!--
+GAME_META
+title: Reaction Speed Test
+badge: Reflex Test
+description: Wait for the red screen to turn green and tap immediately to measure response time.
+-->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reaction Test - Play.io</title>
@@ -18,7 +24,7 @@
 </head>
 <body>
   <div class="top-bar">
-    <a href="games.html">&larr; Back to Games</a>
+    <a href="../games.html">&larr; Back to Games</a>
   </div>
 
   <div id="targetBox" onclick="handleClick()">
@@ -31,7 +37,7 @@
     const heading = document.getElementById("heading");
     const sub = document.getElementById("sub");
 
-    let state = "idle"; // idle, waiting, ready
+    let state = "idle";
     let startTime = 0;
     let timeoutId = null;
 
