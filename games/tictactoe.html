@@ -1,26 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!--
+GAME_META
+title: Tic-Tac-Toe (Local)
+badge: Strategy
+description: Classic two-player game on one device with turn indicator and win check.
+-->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tic-Tac-Toe - Play.io</title>
+  <title>Tic-Tac-Toe (Local) - Play.io</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
     .top-bar { width: 100%; max-width: 340px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .top-bar a { color: #58a6ff; text-decoration: none; font-weight: 600; }
-    .status { font-size: 1.2rem; margin-bottom: 16px; color: #58a6ff; font-weight: bold; }
+    .status { font-size: 1.25rem; margin-bottom: 16px; color: #58a6ff; font-weight: bold; }
     .board { display: grid; grid-template-columns: repeat(3, 100px); grid-template-rows: repeat(3, 100px); gap: 8px; }
-    .cell { background: #161b22; border: 2px solid #30363d; border-radius: 8px; font-size: 2.4rem; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+    .cell { background: #161b22; border: 2px solid #30363d; border-radius: 8px; font-size: 2.5rem; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
     .cell.x { color: #58a6ff; }
     .cell.o { color: #f85149; }
-    .btn { margin-top: 24px; padding: 10px 24px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn { margin-top: 24px; padding: 12px 28px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; }
     .btn:hover { background: #2ea043; }
   </style>
 </head>
 <body>
   <div class="top-bar">
-    <a href="games.html">&larr; Back to Games</a>
+    <a href="../games.html">&larr; Back to Games</a>
   </div>
 
   <div class="status" id="status">Player X's Turn</div>
@@ -36,7 +42,7 @@
     <div class="cell" onclick="makeMove(8)"></div>
   </div>
 
-  <button class="btn" onclick="restart()">Restart Game</button>
+  <button class="btn" onclick="restart()">Restart Match</button>
 
   <script>
     let board = ["", "", "", "", "", "", "", "", ""];
