@@ -6,7 +6,7 @@
       "id": "subway-runner",
       "title": "Subway Runner: Neon Dash",
       "category": "Action / Endless Runner",
-      "description": "3D infinite runner with temporary room codes, PIN protection, and live multiplayer scoreboards.",
+      "description": "3D infinite runner with temporary room codes, PIN protection, full on-screen/keyboard controls, pause, back navigation, and post-run scoreboards.",
       "thumbnail": "assets/thumbnails/subway-runner.png",
       "orientation": "landscape",
       "multiplayer": true
@@ -14,120 +14,179 @@
     PLAYIO_GAME_METADATA_END -->
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Subway Runner: Neon Dash | Playio</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #0f111a; color: #fff; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
-        
-        /* UI Layer */
-        .hud {
-            position: absolute; top: 20px; left: 20px; z-index: 10;
-            display: flex; gap: 20px; font-size: 20px; font-weight: bold;
-            text-shadow: 0 0 10px rgba(0,255,200,0.8);
+
+        /* Top Bar Navigation & Stats */
+        .top-bar {
+            position: absolute; top: 16px; left: 16px; right: 16px; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center; pointer-events: none;
         }
+        .top-group { display: flex; align-items: center; gap: 12px; pointer-events: auto; }
+        .hud-stat {
+            font-size: 20px; font-weight: 800; letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+        }
+        .hud-btn {
+            background: rgba(24, 29, 48, 0.85); border: 1px solid #33416b;
+            color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 13px;
+            font-weight: 700; cursor: pointer; transition: 0.15s ease; backdrop-filter: blur(4px);
+        }
+        .hud-btn:hover { background: #222a45; border-color: #00f2fe; }
+
         .room-tag {
-            position: absolute; top: 20px; right: 20px; z-index: 10;
-            background: rgba(16, 20, 35, 0.85); padding: 8px 16px; border-radius: 8px;
-            border: 1px solid #38ef7d; font-size: 14px;
+            background: rgba(16, 20, 35, 0.85); padding: 6px 12px; border-radius: 6px;
+            border: 1px solid #38ef7d; font-size: 13px; font-weight: 600;
         }
 
-        /* Modals & Overlays */
+        /* On-Screen Mobile / Desktop Touch Controls */
+        .touch-controls {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 16px; z-index: 10; pointer-events: auto;
+        }
+        .ctrl-btn {
+            width: 68px; height: 68px; border-radius: 50%; border: 2px solid rgba(0, 242, 254, 0.4);
+            background: rgba(15, 17, 26, 0.65); backdrop-filter: blur(8px); color: #fff;
+            font-size: 22px; font-weight: bold; display: flex; justify-content: center;
+            align-items: center; cursor: pointer; transition: 0.1s transform, 0.1s background;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ctrl-btn:active {
+            transform: scale(0.92); background: rgba(0, 242, 254, 0.3); border-color: #00f2fe;
+        }
+        .ctrl-jump { border-color: rgba(56, 239, 125, 0.5); }
+        .ctrl-jump:active { background: rgba(56, 239, 125, 0.3); border-color: #38ef7d; }
+
+        /* Full Screen Modals / Overlays */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 12, 22, 0.9); z-index: 20;
+            background: rgba(10, 12, 22, 0.92); backdrop-filter: blur(6px); z-index: 30;
             display: flex; justify-content: center; align-items: center;
         }
         .modal {
-            background: #181d30; padding: 30px; border-radius: 12px;
-            width: 420px; border: 1px solid #2d3758; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            display: flex; flex-direction: column; gap: 15px; text-align: center;
+            background: #181d30; padding: 28px; border-radius: 14px;
+            width: 400px; max-width: 90%; border: 1px solid #2d3758;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7); display: flex;
+            flex-direction: column; gap: 14px; text-align: center;
         }
-        .modal h2 { color: #00f2fe; margin-bottom: 5px; }
+        .modal h2 { font-size: 24px; font-weight: 900; color: #00f2fe; letter-spacing: 0.5px; }
+        .score-highlight {
+            font-size: 38px; font-weight: 900; color: #ffffff;
+            text-shadow: 0 0 18px rgba(0, 242, 254, 0.8); margin: 8px 0;
+        }
         .modal input {
             background: #0d101d; border: 1px solid #33416b; color: #fff;
             padding: 10px 14px; border-radius: 6px; font-size: 14px; width: 100%; outline: none;
         }
         .modal input:focus { border-color: #00f2fe; }
         .btn-group { display: flex; gap: 10px; }
-        button {
+        button.action-btn {
             flex: 1; padding: 12px; border: none; border-radius: 6px;
             background: linear-gradient(135deg, #00f2fe, #4facfe); color: #050b14;
-            font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s ease;
+            font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.15s ease;
         }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-        button.secondary {
+        button.action-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+        button.secondary-btn {
             background: #252e4d; color: #e2e8f0;
         }
-        button.secondary:hover { background: #323d66; }
+        button.secondary-btn:hover { background: #323d66; }
 
         /* Scoreboard Panel */
         #scoreboard-panel {
-            position: absolute; bottom: 20px; right: 20px; z-index: 10;
-            background: rgba(16, 20, 35, 0.85); border: 1px solid #33416b;
-            border-radius: 8px; padding: 12px 18px; width: 260px; max-height: 250px;
-            overflow-y: auto;
+            position: absolute; bottom: 100px; right: 20px; z-index: 15;
+            background: rgba(16, 20, 35, 0.9); border: 1px solid #33416b;
+            border-radius: 10px; padding: 14px 18px; width: 280px; max-height: 280px;
+            overflow-y: auto; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
-        #scoreboard-panel h3 { font-size: 14px; color: #00f2fe; margin-bottom: 8px; text-transform: uppercase; }
+        #scoreboard-panel h3 {
+            font-size: 13px; color: #00f2fe; margin-bottom: 10px;
+            text-transform: uppercase; letter-spacing: 0.8px; font-weight: 800;
+        }
         .score-entry {
             display: flex; justify-content: space-between; font-size: 13px;
-            padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
-        .score-entry.self { color: #38ef7d; font-weight: bold; }
+        .score-entry.self { color: #38ef7d; font-weight: 800; }
     </style>
-    <!-- Three.js CDN for 3D Subway Canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- PeerJS for WebRTC Serverless Rooms -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
     <div id="canvas-container"></div>
 
-    <div class="hud">
-        <div>SCORE: <span id="ui-score">0</span></div>
-        <div>COINS: <span id="ui-coins">0</span></div>
+    <!-- Top Bar Controls & Stats -->
+    <div class="top-bar">
+        <div class="top-group">
+            <button class="hud-btn" onclick="exitToCatalog()">◀ Back</button>
+            <button class="hud-btn" id="pause-toggle-btn" onclick="togglePause()">Pause</button>
+            <div class="hud-stat">SCORE: <span id="ui-score">0</span></div>
+        </div>
+
+        <div class="top-group">
+            <div class="room-tag" id="ui-room-tag" style="display: none;">
+                Room: <span id="ui-room-name">----</span> | PIN: <span id="ui-pin-name">----</span>
+            </div>
+            <button class="hud-btn" id="hud-leaderboard-btn" style="display: none;" onclick="toggleLeaderboard()">Leaderboard</button>
+        </div>
     </div>
 
-    <div class="room-tag" id="ui-room-tag" style="display: none;">
-        Room: <span id="ui-room-name">----</span> | PIN: <span id="ui-pin-name">----</span>
+    <!-- On-screen directional & jump controls -->
+    <div class="touch-controls" id="touch-controls-panel" style="display: none;">
+        <div class="ctrl-btn" id="btn-left" onclick="moveLeft()">◀</div>
+        <div class="ctrl-btn ctrl-jump" id="btn-jump" onclick="doJump()">▲</div>
+        <div class="ctrl-btn" id="btn-right" onclick="moveRight()">▶</div>
     </div>
 
-    <!-- Live Room Scoreboard -->
-    <div id="scoreboard-panel" style="display: none;">
-        <h3>Room Leaderboard</h3>
+    <!-- Live In-Game Room Scoreboard -->
+    <div id="scoreboard-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <h3>Room Leaderboard</h3>
+            <span style="cursor: pointer; font-size: 14px; color: #94a3b8;" onclick="toggleLeaderboard()">✕</span>
+        </div>
         <div id="leaderboard-list"></div>
     </div>
 
-    <!-- Room Entry / Lobby Overlay -->
+    <!-- Lobby / Room Configuration Overlay -->
     <div class="overlay" id="lobby-overlay">
         <div class="modal">
             <h2>Subway Runner</h2>
-            <p style="font-size: 13px; color: #94a3b8;">Enter nickname and join or create a private room.</p>
+            <p style="font-size: 13px; color: #94a3b8;">Enter a nickname and launch solo or start a room.</p>
             <input type="text" id="player-nickname" placeholder="Nickname (e.g. SpeedDemon)" maxlength="12" value="Runner1">
-            
-            <div style="border-top: 1px solid #252e4d; margin: 5px 0;"></div>
-            
+
             <div class="btn-group">
-                <button onclick="showCreateRoom()">Create Room</button>
-                <button class="secondary" onclick="showJoinRoom()">Join Room</button>
+                <button class="action-btn" onclick="showCreateRoom()">Create Room</button>
+                <button class="action-btn secondary-btn" onclick="showJoinRoom()">Join Room</button>
             </div>
 
-            <!-- Create Fields -->
             <div id="create-fields" style="display:none; flex-direction:column; gap:10px;">
                 <input type="text" id="create-pin" placeholder="Set Room PIN (4 digits)" maxlength="4">
-                <button onclick="initHostRoom()">Launch & Host</button>
+                <button class="action-btn" onclick="initHostRoom()">Launch & Host</button>
             </div>
 
-            <!-- Join Fields -->
             <div id="join-fields" style="display:none; flex-direction:column; gap:10px;">
                 <input type="text" id="join-room-id" placeholder="Enter 6-digit Room Code" maxlength="6">
                 <input type="text" id="join-pin" placeholder="Enter Room PIN" maxlength="4">
-                <button onclick="initJoinRoom()">Connect & Play</button>
+                <button class="action-btn" onclick="initJoinRoom()">Connect & Play</button>
             </div>
 
-            <button class="secondary" onclick="startSolo()" style="margin-top: 5px;">Play Solo</button>
+            <button class="action-btn secondary-btn" onclick="startSolo()">Play Solo</button>
+            <button class="action-btn secondary-btn" onclick="exitToCatalog()">Back to Catalog</button>
+        </div>
+    </div>
+
+    <!-- Pause Menu Overlay -->
+    <div class="overlay" id="pause-overlay" style="display: none;">
+        <div class="modal">
+            <h2>Game Paused</h2>
+            <button class="action-btn" onclick="togglePause()">Resume</button>
+            <button class="action-btn secondary-btn" onclick="showLeaderboardModal()">View Leaderboard</button>
+            <button class="action-btn secondary-btn" onclick="restartGame()">Restart</button>
+            <button class="action-btn secondary-btn" onclick="exitToCatalog()">Quit to Catalog</button>
         </div>
     </div>
 
@@ -135,22 +194,26 @@
     <div class="overlay" id="death-overlay" style="display: none;">
         <div class="modal">
             <h2 style="color: #ff416c;">CRASHED!</h2>
-            <p>Your Final Score: <span id="final-score" style="font-size: 20px; font-weight: bold; color: #fff;">0</span></p>
-            <button onclick="restartGame()">Run Again</button>
+            <div style="font-size: 13px; color: #94a3b8;">FINAL SCORE</div>
+            <div class="score-highlight" id="final-score">0</div>
+            <button class="action-btn" onclick="restartGame()">Run Again</button>
+            <button class="action-btn secondary-btn" onclick="showLeaderboardModal()">View Leaderboard</button>
+            <button class="action-btn secondary-btn" onclick="exitToCatalog()">Quit to Catalog</button>
         </div>
     </div>
 
     <script>
         /* -------------------------------------------------------------
-           1. GAME ENGINE (Three.js 3-Lane Endless Runner)
+           1. THREE.JS 3D ENGINE & MECHANICS
         ------------------------------------------------------------- */
         let scene, camera, renderer, player;
-        let lanes = [-3, 0, 3];
-        let currentLane = 1; // 0: Left, 1: Middle, 2: Right
+        const lanes = [-3, 0, 3];
+        let currentLane = 1;
         let isJumping = false, jumpVelocity = 0;
-        let score = 0, coins = 0, speed = 0.4;
+        let score = 0, speed = 0.42;
         let obstacles = [], tracks = [];
         let gameRunning = false;
+        let isPaused = false;
 
         function initScene() {
             const container = document.getElementById('canvas-container');
@@ -166,21 +229,20 @@
             renderer.setClearColor(0x0f111a);
             container.appendChild(renderer.domElement);
 
-            // Lighting
             const ambient = new THREE.AmbientLight(0xffffff, 0.7);
             const dirLight = new THREE.DirectionalLight(0x00f2fe, 0.8);
             dirLight.position.set(5, 10, 7);
             scene.add(ambient, dirLight);
 
-            // Player Mesh
-            const geom = new THREE.BoxGeometry(1, 1.8, 1);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x38ef7d, roughness: 0.3 });
+            // Player Avatar
+            const geom = new THREE.BoxGeometry(1.1, 1.8, 1.1);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x38ef7d, roughness: 0.25 });
             player = new THREE.Mesh(geom, mat);
             player.position.set(lanes[currentLane], 0.9, 0);
             scene.add(player);
 
             // Tracks
-            for(let i = 0; i < 15; i++) {
+            for (let i = 0; i < 16; i++) {
                 createTrackSlice(-i * 10);
             }
 
@@ -207,26 +269,52 @@
             obstacles.push({ mesh: obs, lane: laneIdx });
         }
 
-        function handleKeyInput(e) {
-            if (!gameRunning) return;
-            if (e.key === 'ArrowLeft' || e.key === 'a') {
-                if (currentLane > 0) currentLane--;
-            } else if (e.key === 'ArrowRight' || e.key === 'd') {
-                if (currentLane < 2) currentLane++;
-            } else if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') && !isJumping) {
+        /* -------------------------------------------------------------
+           2. CONTROLS (ON-SCREEN BUTTONS + KEYBOARD)
+        ------------------------------------------------------------- */
+        function moveLeft() {
+            if (!gameRunning || isPaused) return;
+            if (currentLane > 0) currentLane--;
+        }
+
+        function moveRight() {
+            if (!gameRunning || isPaused) return;
+            if (currentLane < 2) currentLane++;
+        }
+
+        function doJump() {
+            if (!gameRunning || isPaused) return;
+            if (!isJumping) {
                 isJumping = true;
-                jumpVelocity = 0.32;
+                jumpVelocity = 0.33;
             }
         }
 
+        function handleKeyInput(e) {
+            if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+                if (gameRunning) togglePause();
+                return;
+            }
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                moveLeft();
+            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                moveRight();
+            } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
+                doJump();
+            }
+        }
+
+        /* -------------------------------------------------------------
+           3. RUNTIME LOOP & NAVIGATION
+        ------------------------------------------------------------- */
         function gameLoop() {
-            if (!gameRunning) return;
+            if (!gameRunning || isPaused) return;
             requestAnimationFrame(gameLoop);
 
-            // Player lateral interpolation
+            // Lane interpolation
             player.position.x += (lanes[currentLane] - player.position.x) * 0.25;
 
-            // Jump Physics
+            // Jump handling
             if (isJumping) {
                 player.position.y += jumpVelocity;
                 jumpVelocity -= 0.018;
@@ -236,24 +324,22 @@
                 }
             }
 
-            // Move tracks
+            // Move track slices
             for (let t of tracks) {
                 t.position.z += speed;
-                if (t.position.z > 10) {
-                    t.position.z -= 150;
-                }
+                if (t.position.z > 10) t.position.z -= 160;
             }
 
-            // Manage Obstacles
+            // Spawn obstacles
             if (Math.random() < 0.035 && (obstacles.length === 0 || obstacles[obstacles.length - 1].mesh.position.z > -100)) {
-                spawnObstacle(-120);
+                spawnObstacle(-130);
             }
 
+            // Update & check collisions
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obs = obstacles[i];
                 obs.mesh.position.z += speed;
 
-                // Collision detection
                 if (Math.abs(obs.mesh.position.z - player.position.z) < 1.0 && obs.lane === currentLane) {
                     if (player.position.y < 1.4) {
                         endGame();
@@ -268,7 +354,7 @@
             }
 
             score += 1;
-            speed += 0.00005; // progressive speed-up
+            speed += 0.00004;
             document.getElementById('ui-score').innerText = Math.floor(score / 5);
 
             renderer.render(scene, camera);
@@ -280,38 +366,59 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
+        function togglePause() {
+            if (!gameRunning) return;
+            isPaused = !isPaused;
+            document.getElementById('pause-overlay').style.display = isPaused ? 'flex' : 'none';
+            document.getElementById('pause-toggle-btn').innerText = isPaused ? 'Resume' : 'Pause';
+            if (!isPaused) requestAnimationFrame(gameLoop);
+        }
+
+        function exitToCatalog() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '../games.html';
+            }
+        }
+
         function startGame() {
             document.getElementById('lobby-overlay').style.display = 'none';
             document.getElementById('death-overlay').style.display = 'none';
+            document.getElementById('pause-overlay').style.display = 'none';
+            document.getElementById('touch-controls-panel').style.display = 'flex';
+
             score = 0;
-            speed = 0.4;
+            speed = 0.42;
             currentLane = 1;
+            isJumping = false;
+            isPaused = false;
+            document.getElementById('pause-toggle-btn').innerText = 'Pause';
             player.position.set(lanes[1], 0.9, 0);
-            
-            // Clear current obstacles
+
             for (let obs of obstacles) scene.remove(obs.mesh);
             obstacles = [];
-            
+
             gameRunning = true;
-            gameLoop();
+            requestAnimationFrame(gameLoop);
         }
 
         function endGame() {
             gameRunning = false;
+            document.getElementById('touch-controls-panel').style.display = 'none';
             const final = Math.floor(score / 5);
             document.getElementById('final-score').innerText = final;
             document.getElementById('death-overlay').style.display = 'flex';
-            
-            // Broadcast final score to room peers
             syncScore(final);
         }
 
         function restartGame() {
+            document.getElementById('scoreboard-panel').style.display = 'none';
             startGame();
         }
 
         /* -------------------------------------------------------------
-           2. MULTIPLAYER, ROOMS & SCOREBOARDS (Serverless PeerJS)
+           4. MULTIPLAYER ROOMS & SCOREBOARDS (PeerJS)
         ------------------------------------------------------------- */
         let peer = null;
         let connections = [];
@@ -319,7 +426,7 @@
         let roomCode = "";
         let roomPIN = "";
         let nickname = "Runner";
-        let scoreTable = {}; // { peerId: { name, score } }
+        let scoreTable = {};
 
         function showCreateRoom() {
             document.getElementById('create-fields').style.display = 'flex';
@@ -332,145 +439,23 @@
         }
 
         function startSolo() {
+            nickname = document.getElementById('player-nickname').value.trim() || "Runner";
+            scoreTable["local"] = { name: nickname, score: 0 };
+            renderScoreboard();
             startGame();
-        }
-
-        function generateCode(len) {
-            return Math.floor(100000 + Math.random() * 900000).toString();
         }
 
         function setupRoomUI(code, pin) {
             document.getElementById('ui-room-tag').style.display = 'block';
-            document.getElementById('scoreboard-panel').style.display = 'block';
+            document.getElementById('hud-leaderboard-btn').style.display = 'block';
             document.getElementById('ui-room-name').innerText = code;
             document.getElementById('ui-pin-name').innerText = pin;
         }
 
-        // Host a Room
-        function initHostRoom() {
-            nickname = document.getElementById('player-nickname').value.trim() || "HostRunner";
-            roomPIN = document.getElementById('create-pin').value.trim();
-            roomCode = generateCode(6);
-
-            // Peer prefix ensures safe namespace isolation on public PeerJS servers
-            peer = new Peer("playio-subway-" + roomCode);
-
-            peer.on('open', (id) => {
-                isHost = true;
-                setupRoomUI(roomCode, roomPIN || "None");
-                scoreTable[peer.id] = { name: nickname, score: 0 };
-                renderScoreboard();
-                startGame();
-            });
-
-            peer.on('connection', (conn) => {
-                conn.on('data', (data) => {
-                    handleHostNetworkMessage(conn, data);
-                });
-                conn.on('close', () => {
-                    delete scoreTable[conn.peer];
-                    broadcastScoreboard();
-                    renderScoreboard();
-                });
-            });
-
-            peer.on('error', (err) => {
-                alert("Room creation failed: " + err.type);
-            });
+        function toggleLeaderboard() {
+            const panel = document.getElementById('scoreboard-panel');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         }
 
-        // Join a Room
-        function initJoinRoom() {
-            nickname = document.getElementById('player-nickname').value.trim() || "GuestRunner";
-            const targetCode = document.getElementById('join-room-id').value.trim();
-            const inputPIN = document.getElementById('join-pin').value.trim();
-
-            peer = new Peer(); // auto ID for clients
-
-            peer.on('open', () => {
-                const conn = peer.connect("playio-subway-" + targetCode);
-                conn.on('open', () => {
-                    // Send auth handshake
-                    conn.send({ type: 'HANDSHAKE', nickname: nickname, pin: inputPIN });
-                });
-
-                conn.on('data', (data) => {
-                    if (data.type === 'AUTH_FAILED') {
-                        alert(data.reason);
-                        peer.destroy();
-                    } else if (data.type === 'AUTH_SUCCESS') {
-                        setupRoomUI(targetCode, inputPIN || "None");
-                        connections.push(conn);
-                        startGame();
-                    } else if (data.type === 'SCOREBOARD_UPDATE') {
-                        scoreTable = data.table;
-                        renderScoreboard();
-                    }
-                });
-            });
-
-            peer.on('error', (err) => {
-                alert("Could not connect to room: " + err.type);
-            });
-        }
-
-        function handleHostNetworkMessage(conn, data) {
-            if (data.type === 'HANDSHAKE') {
-                if (roomPIN && data.pin !== roomPIN) {
-                    conn.send({ type: 'AUTH_FAILED', reason: 'Invalid Room PIN' });
-                    conn.close();
-                    return;
-                }
-                connections.push(conn);
-                scoreTable[conn.peer] = { name: data.nickname, score: 0 };
-                conn.send({ type: 'AUTH_SUCCESS' });
-                broadcastScoreboard();
-                renderScoreboard();
-            } else if (data.type === 'SCORE_UPDATE') {
-                if (scoreTable[conn.peer]) {
-                    scoreTable[conn.peer].score = Math.max(scoreTable[conn.peer].score, data.score);
-                    broadcastScoreboard();
-                    renderScoreboard();
-                }
-            }
-        }
-
-        function broadcastScoreboard() {
-            if (!isHost) return;
-            const payload = { type: 'SCOREBOARD_UPDATE', table: scoreTable };
-            for (let c of connections) {
-                if (c.open) c.send(payload);
-            }
-        }
-
-        function syncScore(currentScore) {
-            if (!peer) return;
-            if (isHost) {
-                scoreTable[peer.id].score = Math.max(scoreTable[peer.id].score, currentScore);
-                broadcastScoreboard();
-                renderScoreboard();
-            } else if (connections.length > 0 && connections[0].open) {
-                connections[0].send({ type: 'SCORE_UPDATE', score: currentScore });
-            }
-        }
-
-        function renderScoreboard() {
-            const listEl = document.getElementById('leaderboard-list');
-            listEl.innerHTML = "";
-            
-            // Sort by descending score
-            const sorted = Object.entries(scoreTable).sort((a, b) => b[1].score - a[1].score);
-
-            sorted.forEach(([id, entry], index) => {
-                const row = document.createElement('div');
-                row.className = 'score-entry' + (peer && id === peer.id ? ' self' : '');
-                row.innerHTML = `<span>#${index + 1} ${entry.name}</span><span>${entry.score}</span>`;
-                listEl.appendChild(row);
-            });
-        }
-
-        // Initialize 3D Engine on load
-        window.onload = initScene;
-    </script>
-</body>
-</html>
+        function showLeaderboardModal() {
+            document.getElementById('scoreboard-panel')
